@@ -53,6 +53,21 @@ do
       shift
       ;;
 
+## --noaa-15                    alias for --freq 13762000
+    '--noaa-15')
+      freq=137620000
+      ;;
+
+## --noaa-18                    alias for --freq 137912500
+    '--noaa-18')
+      freq=137912500
+      ;;
+
+## --noaa-19                    alias for --freq 137100000
+    '--noaa-19')
+      freq=137100000
+      ;;
+
 ## --debug                      (default: wxrx.log)
     '--log')
       debug_out="2"
@@ -74,7 +89,7 @@ do
 done
 
 # wxtoimg needs this specific sample rate
-sample_rate="22050"
+sample_rate="11025"
 
 # TODO Verify freq and duration
 
