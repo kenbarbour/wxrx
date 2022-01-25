@@ -4,7 +4,7 @@
 ## usage: __PROG__ [options]
 ##
 
-set -uo pipefail
+set -o pipefail
 prog="$0"
 me=$(basename "${prog}")
 rootdir=$(git rev-parse --show-toplevel)
@@ -68,6 +68,13 @@ do
       freq=137100000
       ;;
 
+# TODO: ## --bias-t, -T                 enable hardware Bias-T power
+
+## --monitor                    monitor recording
+    '--monitor')
+      monitor=1
+      ;;
+
 ## --debug                      (default: wxrx.log)
     '--log')
       debug_out="2"
@@ -93,12 +100,23 @@ sample_rate="11025"
 
 # TODO Verify freq and duration
 
+function demodulate_pass() {
+  timeout ${duration} rtl_fm -T -f ${freq} -M fm -g ${gain} -s 48000 -r ${sample_rate} -F 9 -A fast
+}
+
+function resample_pass() {
+  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - ${wavfile}
+}
+
+function monitor_pass() {
+  ( [ -z $monitor ] && cat || tee >(play -r ${sample_rate} -t raw -es -b 16 -c 1 -V1 -) )
+}
 
 log "Listening for signal on ${freq} for ${duration} seconds (gain: ${gain})"
-timeout ${duration} rtl_fm -T -f ${freq} -M fm -g ${gain} -s 48000 -r ${sample_rate} -F 9 -A fast  | sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - ${wavfile}
-if [ -z "$?" ]; then
-  log "Exit status: %d, try adding --debug flag" $?
-fi
+
+demodulate_pass | monitor_pass | resample_pass
+
+# Cleanup
 log "Finished writing to ${wavfile}"
 
 # Verify that a wavfile was created
@@ -106,5 +124,4 @@ if [ ! -f ${wavfile} ]; then
   err "No output. Try the --debug flag"
   exit 1
 fi
-
 
