@@ -19,7 +19,7 @@ freq="137M"
 duration=10
 gain=40
 wavfile="pass.wav"
-debug_out="/dev/null"
+sample_rate="11025"
 
 while (( "$#" ))
 do
@@ -75,11 +75,6 @@ do
       monitor=1
       ;;
 
-## --debug                      (default: wxrx.log)
-    '--log')
-      debug_out="2"
-      ;;
-
 ## --help, -h
     '--help' | '-h')
       usage
@@ -94,11 +89,6 @@ do
   esac
   shift
 done
-
-# wxtoimg needs this specific sample rate
-sample_rate="11025"
-
-# TODO Verify freq and duration
 
 function demodulate_pass() {
   timeout ${duration} rtl_fm -T -f ${freq} -M fm -g ${gain} -s 48000 -r ${sample_rate} -F 9 -A fast
