@@ -25,7 +25,8 @@ function logerr() {
 
 # default values
 tlefile=${tlefile:=satellites.tle}
-min_duration=${min_duration:=600}
+min_duration=${min_duration:=0}
+min_elevation=${min_elevation:=45}
 
 ##  Options:
 while (( "$#" ));
@@ -53,7 +54,7 @@ do
       fi
       ;;
 
-## --min-duration <seconds>     Minimum duration to include in report (default 600)
+## --min-duration <seconds>     Minimum duration to include in report (default 0)
     '--min-duration')
       # check that $2 exists and is not another flag
       if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
@@ -68,6 +69,24 @@ do
         exit 1
       fi
       min_duration=${2}
+      shift
+      ;;
+
+## --min-elevation <degrees>    Minimum elevation to include in report (default 45)
+    '--min-elevation')
+      # check that $2 exists and is not another flag
+      if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
+        logerr "Option ${1} requires an argument"
+        usage
+        exit 1
+      fi
+      # integers only
+      if ! [[ "$2" =~ ^[0-9]+$ ]]; then
+        logerr "Option ${1} must have an integer argument"
+        usage
+        exit 1
+      fi
+      min_elevation=${2}
       shift
       ;;
 
@@ -97,11 +116,17 @@ function prediction() {
   pass=$(predict -t satellites.tle -p "${1}")
   aos=$(printf "%s\n" "$pass" | head -n 1 | cut -d ' ' -f 1)
   los=$(printf "%s\n" "$pass" | tail -n 1 | cut -d ' ' -f 1)
+  ele=$(printf "%s\n" "$pass" | awk 'BEGIN{a=0}{if ($5>0+a) a=$5} END{print a}')
   duration=$(expr ${los} - ${aos})
-  starttime=$(date -d @${aos})
-  if [ $duration -ge ${min_duration:-0} ]; then
-    printf "%s\t%s\t%s\n" "${starttime}" "${duration}" "${1}"
+  starttime=$(date -d @${aos} '+%F %T')
+  if [ $duration -lt ${min_duration:-0} ]; then
+    return
   fi
+  if [ $ele -lt ${min_elevation:-0} ]; then
+    return
+  fi
+
+  printf "%s\t%s\t%s\t%s\n" "${starttime}" "${duration}" "${ele}" "${1}"
 }
 
 predictions=$(for satellite in 'NOAA 15' 'NOAA 18' 'NOAA 19'; do
