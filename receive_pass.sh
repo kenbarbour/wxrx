@@ -7,7 +7,7 @@
 set -o pipefail
 prog="$0"
 me=$(basename "${prog}")
-rootdir=$(git rev-parse --show-toplevel)
+rootdir=$(dirname $(realpath $0))
 source "${rootdir}/lib/utils.sh"
 
 function usage() {
@@ -17,7 +17,7 @@ function usage() {
 # defaults
 freq="137M"
 duration=10
-gain=40
+gain_flag=''
 sample_rate=11025
 bandwidth=40000
 now=$(date +%s)
@@ -44,8 +44,8 @@ do
 
 ## --gain <integer>             (default: auto)
     '--gain')
-      gain=${2}
-      log "gain set to ${gain}"
+      gain_flag="-g ${2}"
+      log "gain set to ${2}"
       shift
       ;;
 
@@ -97,7 +97,7 @@ do
 done
 
 function demodulate_pass() {
-  timeout ${duration} rtl_fm -T -f ${freq} -M fm -g ${gain} -s ${bandwidth} -r ${sample_rate} -F 9 -A fast
+  timeout ${duration} rtl_fm -T -f ${freq} -M fm ${gain_flag} -s ${bandwidth} -r ${sample_rate} -E wav -E deemp -F 9 -A fast
 }
 
 function resample_pass() {
