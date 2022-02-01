@@ -5,7 +5,7 @@
 ##
 prog="$0"
 me=`basename "$prog"`
-rootdir=$(git rev-parse --show-toplevel)
+rootdir=$(dirname $(realpath $0))
 count=0
 enhancements="ZA NO MSA MCIR therm"
 tle_file="${rootdir}/satellites.tle"
@@ -58,10 +58,10 @@ function make_images() {
   fi
 
   for en in $enhancements; do
-    wxtoimg ${map_flag:- } -e ${en} ${wavfile} ${prefix}-${en}.png
-    if [ $? ]; then
-      logerr "Error creating image with enhancement ${en}"
-      exit 5
+    imgfile=${prefix}-${en}.png
+    wxtoimg ${map_flag:- } -e ${en} ${wavfile} ${imgfile}
+    if [ $? -ne 0 ]; then
+      logerr "Error generating %s with %s enhancement" "${en}" "${imgfile}"
     fi
   done
   ((count++))
