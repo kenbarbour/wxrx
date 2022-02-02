@@ -8,7 +8,7 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 count=0
-enhancements="ZA NO MSA MCIR therm"
+enhancements="MSA ZA NO MCIR therm"
 tle_file="satellites.tle"
 
 # Guesses the timestamp of a file based on the duration and mtime
@@ -19,7 +19,7 @@ function guess_timestamp() {
   wavfile=${1}
   duration=$(printf "%.0f\n" $(soxi -D ${1}))
   mtime=$(stat -c %Y ${1})
-  expr ${mtime} - ${duration}
+  expr ${mtime} - ${duration} + 2
 }
 
 # Creates images from a recorded pass on the filesystem
@@ -53,7 +53,7 @@ function make_images() {
     mapfile="${prefix}-map.png"
     # working cmd:
     # wxmap -T 'NOAA 15' -G . -H satellites.tle 1643720373 map.png
-    wxmap -T "${satellite}" -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile}
+    wxmap -T "${satellite}" -G . -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile}
     if [ $? -gt 0 ]; then
       logerr "Error generating map"
     else

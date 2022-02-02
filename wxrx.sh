@@ -42,6 +42,12 @@ case "$command" in
     HELP=$command_help ${rootdir}/build_images.sh $@
     ;;
 
+##    web           Generate website files from decoded manifests
+  'web')
+    shift
+    HELP=$command_help ${rootdir}/generate_website.sh $@
+    ;;
+
 ##    pass          Capture and decode a pass occuring NOW
   'pass')
     printf "TODO\n"
