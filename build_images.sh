@@ -6,30 +6,10 @@
 prog="$0"
 me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
+source ${rootdir}/lib/utils.sh
 count=0
 enhancements="ZA NO MSA MCIR therm"
 tle_file="satellites.tle"
-
-# Lines starting with '##' are intended for usage documentation
-function usage() {
-  grep '^##' "$prog" | sed -e 's/^##\s\?//' -e "s/__PROG__/$me/" 1>&2
-}
-
-# Like printf, but prints to stderr with prettier formatting if TTY
-function logerr() {
-  if [ -t 2 ]; then
-    printf "$(tput setaf 1)ERROR$(tput sgr0) ${1}\n" ${@:2} 1>&2
-  else
-    printf "${1}\n" ${@:2} 1>&2
-  fi
-}
-function log() {
-  if [ -t 2 ]; then
-    printf "$(tput setaf 2)[${me}]$(tput sgr0) ${1}\n" ${@:2}
-  else
-    printf "[${me}] ${1}\n" ${@:2}
-  fi
-}
 
 # Guesses the timestamp of a file based on the duration and mtime
 # This assumes the file was finished writing at the end of a pass

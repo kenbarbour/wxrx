@@ -10,10 +10,6 @@ me=${HELP:-$(basename "${prog}")}
 rootdir=$(dirname $(realpath $0))
 source "${rootdir}/lib/utils.sh"
 
-function usage() {
-  grep '^##' "$prog" | sed -e 's/^##\s\?//' -e "s/__PROG__/$me/" 1>&2
-}
-
 # defaults
 freq="137M"
 duration=10

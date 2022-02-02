@@ -7,10 +7,6 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 
-function usage() {
-  grep '^##' "$prog" | sed -e 's/^##\s\?//' -e "s/__PROG__/$me/" 1>&2
-}
-
 # Print usage
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
   usage
