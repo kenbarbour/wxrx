@@ -3,8 +3,8 @@
 ## usage: __PROG__ [<outfile>=satellites.tle]
 
 prog="$0"
-me=`basename "$prog"`
-rootdir=$(git rev-parse --show-toplevel)
+me=${HELP:-`basename "$prog"`}
+rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 
 function usage() {

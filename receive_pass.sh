@@ -6,7 +6,7 @@
 
 set -o pipefail
 prog="$0"
-me=$(basename "${prog}")
+me=${HELP:-$(basename "${prog}")}
 rootdir=$(dirname $(realpath $0))
 source "${rootdir}/lib/utils.sh"
 

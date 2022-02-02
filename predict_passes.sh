@@ -7,7 +7,7 @@
 ## [starttime] [duration] [satellite]
 ##
 prog="$0"
-me=`basename "$prog"`
+me=${HELP:-`basename "$prog"`}
 
 # Lines starting with '##' are intended for usage documentation
 function usage() {

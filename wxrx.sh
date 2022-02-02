@@ -2,7 +2,7 @@
 ##
 ## __PROG__ <command> [-h|--help] ...
 prog="$0"
-me=`basename "$prog"`
+me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 
@@ -27,9 +27,10 @@ if [ -z "${1}" ]; then
   exit 1
 fi
 command=${1}
+command_help="${me} ${command}"
 
 ## Commands:
-case "${1}" in
+case "$command" in
 
 ##    help          Show this help message
   'help' | '-h' | '--help')
@@ -40,19 +41,19 @@ case "${1}" in
 ##    predict       Predict future passes
   'predict')
     shift
-    ${rootdir}/predict_passes.sh $@
+    HELP=$command_help ${rootdir}/predict_passes.sh $@
     ;;
 
 ##    record        Demodulate and record a signal
   'record')
     shift
-    ${rootdir}/receive_pass.sh $@
+    HELP=$command_help ${rootdir}/receive_pass.sh $@
     ;;
 
 ##    decode        Decode images from a recorded APT signal
   'decode')
     shift
-    ${rootdir}/build_images.sh $@
+    HELP=$command_help ${rootdir}/build_images.sh $@
     ;;
 
 ##    pass          Capture and decode a pass occuring NOW
@@ -63,8 +64,9 @@ case "${1}" in
 ##    update        Update satellite telemetry
   'update')
     shift
-    ${rootdir}/update_satellites.sh $@
+    HELP=$command_help ${rootdir}/update_satellites.sh $@
     ;;
+
 ##    schedule      Schedule a future pass with `atd`
   'schedule')
     printf "TODO\n"
