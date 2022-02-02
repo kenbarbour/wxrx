@@ -8,7 +8,7 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 count=0
 enhancements="ZA NO MSA MCIR therm"
-tle_file="${rootdir}/satellites.tle"
+tle_file="satellites.tle"
 
 # Lines starting with '##' are intended for usage documentation
 function usage() {
@@ -21,6 +21,13 @@ function logerr() {
     printf "$(tput setaf 1)ERROR$(tput sgr0) ${1}\n" ${@:2} 1>&2
   else
     printf "${1}\n" ${@:2} 1>&2
+  fi
+}
+function log() {
+  if [ -t 2 ]; then
+    printf "$(tput setaf 2)[${me}]$(tput sgr0) ${1}\n" ${@:2}
+  else
+    printf "[${me}] ${1}\n" ${@:2}
   fi
 }
 
@@ -46,12 +53,15 @@ function guess_timestamp() {
 function make_images() {
   wavfile=${1}
   prefix=${output_prefix:-$(basename ${wavfile} .wav)}
+  manifest=${prefix}-manifest.txt
 
   # check wavfile exists
   if [ ! -f ${wavfile} ]; then
     logerr "No such file ${wavfile}"
     exit 3
   fi
+  log "Creating manifest file ${manifest}"
+  echo "${wavfile}" > ${manifest}
 
   # quietly mkdir -p the output
   mkdir -p $(dirname ${prefix})
@@ -61,13 +71,14 @@ function make_images() {
   # if sat and timestamp supplied, generate a map
   if [ ! -z "${satellite}" ]; then
     mapfile="${prefix}-map.png"
-    map_flag="-m ${mapfile}"
     # working cmd:
     # wxmap -T 'NOAA 15' -G . -H satellites.tle 1643720373 map.png
     wxmap -T "${satellite}" -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile}
     if [ $? -gt 0 ]; then
       logerr "Error generating map"
-      exit 4
+    else
+      map_flag="-m ${mapfile}"
+      log "Generated map ${mapfile}"
     fi
     echo ${mapfile}
   fi
@@ -77,6 +88,9 @@ function make_images() {
     wxtoimg ${map_flag:- } -e ${en} ${wavfile} ${imgfile}
     if [ $? -ne 0 ]; then
       logerr "Error generating %s with %s enhancement" "${en}" "${imgfile}"
+    else
+      log "Generated image ${imgfile}"
+      echo "${imgfile}" >> ${manifest}
     fi
   done
   ((count++))
