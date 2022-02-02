@@ -4,7 +4,7 @@
 ## Usage: __PROG__ [options] wavfile
 ##
 prog="$0"
-me=`basename "$prog"`
+me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 count=0
 enhancements="ZA NO MSA MCIR therm"
@@ -22,6 +22,17 @@ function logerr() {
   else
     printf "${1}\n" ${@:2} 1>&2
   fi
+}
+
+# Guesses the timestamp of a file based on the duration and mtime
+# This assumes the file was finished writing at the end of a pass
+# @param filename
+# @output unix timestamp
+function guess_timestamp() {
+  wavfile=${1}
+  duration=$(printf "%.0f\n" $(soxi -D ${1}))
+  mtime=$(stat -c %Y ${1})
+  expr ${mtime} - ${duration}
 }
 
 # Creates images from a recorded pass on the filesystem
@@ -45,12 +56,16 @@ function make_images() {
   # quietly mkdir -p the output
   mkdir -p $(dirname ${prefix})
 
+  ts=${timestamp:=$(guess_timestamp $wavfile)}
+
   # if sat and timestamp supplied, generate a map
-  if [ ! -z ${timestamp} ] && [ ! -z "${satellite}" ]; then
+  if [ ! -z "${satellite}" ]; then
     mapfile="${prefix}-map.png"
     map_flag="-m ${mapfile}"
-    wxmap -T "${satellite}" -H "${tle_file}" -p 0 -l 0 -o ${timestamp} ${mapfile}
-    if [ $? ]; then
+    # working cmd:
+    # wxmap -T 'NOAA 15' -G . -H satellites.tle 1643720373 map.png
+    wxmap -T "${satellite}" -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile}
+    if [ $? -gt 0 ]; then
       logerr "Error generating map"
       exit 4
     fi
@@ -78,7 +93,14 @@ do
       exit
       ;;
 
-## --timestamp <timestamp>      Unix timestamp of AOS. Needed (along with --satellite) to overlay a map
+## --noaa-15                    Aliases for --satellite <name>
+## --noaa-18
+## --noaa-19
+    --noaa-1[589])
+        satellite="NOAA $(echo ${1} | grep -oP '[0-9]+')"
+      ;;
+
+## --timestamp <timestamp>      Unix timestamp of AOS. (default: based on duration and mtime)
     '--timestamp')
       # check that $2 exists and is not another flag
       if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
@@ -95,7 +117,7 @@ do
       shift
       ;;
 
-## --satellite <name>      Satellite name. Needed (along with --timestamp) to overlay a map
+## --satellite <name>           Satellite name. Needed to overlay a map
     '--satellite')
       # check that $2 exists and is not another flag
       if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
