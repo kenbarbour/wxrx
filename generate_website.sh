@@ -50,7 +50,7 @@ function generate_wavfile_html() {
     <time>${capture_date}</time>
   </h2>
   <p>Hear the FM demodulated output from this pass, or decode it yourself:</p>
-  <audio>
+  <audio controls>
     <source src="${wavfile}" type="audio/wav">
     <a href="${wavfile}">$(basename ${wavfile})</a>
   </audio>
