@@ -25,3 +25,11 @@ function logerr() {
     printf "$(nowstr) [${me}] ERROR: ${1}\n" ${@:2} 1>&2
   fi
 }
+
+function logwarn() {
+  if [ -t 2 ]; then
+    printf "$(tput setaf 3)[${me}] WARNING:$(tput sgr0) ${1}\n" ${@:2} 1>&2
+  else
+    printf "$(nowstr) [${me}] WARNING: ${1}\n" ${@:2} 1>&2
+  fi
+}
