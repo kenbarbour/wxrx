@@ -8,7 +8,7 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 count=0
-enhancements="MSA ZA NO MCIR therm"
+enhancements="MSA MSA-PRECIP ZA NO MCIR therm"
 tle_file="satellites.tle"
 
 # Guesses the timestamp of a file based on the duration and mtime
@@ -67,9 +67,13 @@ function make_images() {
     imgfile=${prefix}-${en}.png
     wxtoimg ${map_flag:- } -e ${en} ${wavfile} ${imgfile}
     if [ $? -ne 0 ]; then
-      logerr "Error generating %s with %s enhancement" "${en}" "${imgfile}"
-    else
+      logwarn "Non-zero status from wxtoimg creating ${imgfile}" "${en}" "${imgfile}"
+    else 
       log "Generated image ${imgfile}"
+    fi
+
+    if [ -f ${imgfile} ]; then
+      log "Adding file to manifest: ${imgfile}"
       echo "${imgfile}" >> ${manifest}
     fi
   done
