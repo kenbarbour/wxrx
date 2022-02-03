@@ -133,7 +133,7 @@ __PASSLIST__
 
 function description_from_filename() {
   filename=${1}
-  re="(noaa_1[589])-([0-9]+)-(ZA|MSA|MCIR|NO|therm)"
+  re="(noaa_1[589])-([0-9]+)-([a-Z\-]+)"
   if [[ $filename =~ $re ]]; then
     satname=$(echo "${BASH_REMATCH[1]}" | awk '{ gsub("_", "-"); print toupper($0) }')
     timestamp=$(date -d "@${BASH_REMATCH[2]}" '+%a %b %d %T %Z %Y')
