@@ -49,18 +49,19 @@ function make_images() {
   ts=${timestamp:=$(guess_timestamp $wavfile)}
 
   # if sat and timestamp supplied, generate a map
+  mapfile="${prefix}-map.png"
   if [ ! -z "${satellite}" ]; then
-    mapfile="${prefix}-map.png"
-    # working cmd:
-    # wxmap -T 'NOAA 15' -G . -H satellites.tle 1643720373 map.png
     wxmap -T "${satellite}" -G . -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile}
     if [ $? -gt 0 ]; then
       logerr "Error generating map"
     else
-      map_flag="-m ${mapfile}"
       log "Generated map ${mapfile}"
     fi
     echo ${mapfile}
+  fi
+  if [ -f $mapfile ]; then
+      log "Using map file ${mapfile}"
+      map_flag="-m ${mapfile}"
   fi
 
   for en in $enhancements; do
