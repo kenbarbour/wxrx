@@ -15,59 +15,32 @@ prog="$0"
 me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
+source ${rootdir}/lib/website_generatorlib.sh
 
-function generate_header() {
-  heading=${1:-"Weather Satellite Images"}
-  cat << __HEADER__
-<!doctype html>
-<html>
-  <head>
-    <title>${title:-${heading}}</title>
-    <meta charset="utf-8">
-  </head>
-  <body>
-    <header>
-    <h1>${heading}</h1>
-    </header>
-__HEADER__
+index_item_file="/tmp/wxrx-index"
+rm -f ${index_item_file}
+
+function render_pass_audio() {
+  file=${1}
+  path=$(publish_audio ${file})
+  cat $(template_path pass-audio) |
+    template_subst WAV_FILE "${path}"
 }
 
-function generate_footer() {
-  cat << __FOOTER__
-    <footer>
-    Generated $(date +%c), KO4UXG
-    </footer>
-  </body>
-</html>
-__FOOTER__
+function render_pass_image() {
+  file=${1}
+  path=$(publish_image ${file})
+  caption=$(description_from_filename "${1}")
+  cat $(template_path pass-image) |
+    template_subst SRC "${path}" |
+    template_subst ALT "Decoded satellite image" |
+    template_subst CAPTION "${caption}"
 }
 
-function generate_wavfile_html() {
-  wavfile=${1}
-  capture_date=$(date -d "@$(stat -c '%Y' ${wavfile})" '+%a %b %d %T %Z %Y')
-  cat << __WAVFILE__
-  <h2>
-    <time>${capture_date}</time>
-  </h2>
-  <p>Hear the FM demodulated output from this pass, or decode it yourself:</p>
-  <audio controls>
-    <source src="${wavfile}" type="audio/wav">
-    <a href="${wavfile}">$(basename ${wavfile})</a>
-  </audio>
-__WAVFILE__
-}
-
-function generate_image_html() {
-  image=${1}
-  image_caption="$(basename "${1}" .png) - Generated $(date -d "@$(stat -c '%Y' $1)" '+%a %b %d %T %Z %Y')"
-  cat << __IMAGE__
-  <figure style="max-width: 1024px; margin: 2rem auto 6rem;" >
-    <a href="${image}">  
-      <img src="${image}" style="width: 100%" alt="Decoded satellite image" />
-    </a>
-    <figcaption>$(description_from_filename ${image})</figcaption>
-  </figure>
-__IMAGE__
+function generate_manifest_thumbnail() {
+  #TODO: generate an actual thumbnail and move it to the web dir
+  # skip if file exists, unless forced
+  cat $1 | grep -m1 '\.png'
 }
 
 #
@@ -76,10 +49,16 @@ __IMAGE__
 # @side effect creates an .html file
 function generate_from_manifest() {
   manifest=${1}
-  outfile="$(basename "${manifest}" -manifest.txt).html"
+  relative_path="$(basename "${manifest}" -manifest.txt).html"
+  outfile="${WXRX_WEB_PUBDIR}/${relative_path}"
+  timestamp=$(timestamp_from_filename $(basename ${relative_path}))
 
+  title="Example Title"
+  heading="Example heading"
+  thumbnail=$(generate_manifest_thumbnail "${1}")
   # count this file as processed
-  html_files+=("$outfile")
+  printf "%d\t%s\t%s\n" "${timestamp}" "${relative_path}" "${thumbnail}" >> ${index_item_file}
+
 
   if [ -f $outfile ] && [ "$outfile" -nt "${manifest}" ]; then
     if [ $rebuild_all -gt 0 ]; then
@@ -91,44 +70,65 @@ function generate_from_manifest() {
   fi
 
   log "Generating page %s from %s" "$outfile" "${manifest}"
-  generate_header > ${outfile}
-  echo '<article>' >> ${outfile}
+  article_content=""
   for file in $(cat ${manifest})
   do
     case $file in
       *.wav)
-        log "Generating markup for wavfile %s" "${file}"
-        generate_wavfile_html "${file}" >> ${outfile}
+        log "\t...wavfile %s" "${file}"
+        heading="$(timestamp_from_file ${file})"
+        title="Satellite Pass - ${heading}"
+        article_content="${article_content}$(render_pass_audio "$file")"
         ;;
       *.png)
-        log "Generating markup for image %s" "${file}"
-        generate_image_html "${file}" >> ${outfile}
+        log "\t..image %s" "${file}"
+        article_content="${article_content}$(render_pass_image "$file")"
         ;;
       *)
         logerr "Not sure what to do with this file: %s" "${file}"
         ;;
     esac
   done
-  echo '</article>' >> ${outfile}
-  generate_footer >> ${outfile}
+
+  content=$(cat $(template_path pass) |
+    template_subst TITLE "${heading}" |
+    template_subst CONTENT "${article_content}")
+
+  cat $(template_path document) |
+    template_subst TITLE "${title}" |
+    template_subst CONTENT "${content}" |
+    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')" |
+    tidy -quiet -indent -o ${outfile}
+  
 }
 
 function generate_index() {
-  outfile="index.html"
-  generate_header "Latest Satellite Passes" > ${outfile}
-  for i in "${html_files[@]}"; do
-    image=$(grep -m1 '<img ' $i)
-    time=$(grep -m1 '<time' $i)
-    cat << __PASSLIST__ >> ${outfile}
-  <article><a href="${i}">
-    <figure style="max-width: 200px; margin: 1rem auto 3rem;">
-      ${image}
-      <figcaption>Captured ${time}</figcaption>
-    </figure>
-  </a></article>
-__PASSLIST__
+  outfile="${WXRX_WEB_PUBDIR}/index.html"
+  log "Generating index file: %s" "${outfile}"
+  index_content=""
+  IFS=$'\n'
+  for line in $(tac $index_item_file); do
+    timestamp=$(echo "${line}" | cut -f1)
+    url=$(echo "${line}" | cut -f2)
+    heading=$(date -d "@$(timestamp_from_filename "${url}")" '+%a %b %d %T %Z %Y')
+    thumbnail=$(echo "${line}" | cut -f3)
+    log "\t...generating item: %s" "${url}"
+    index_content="${index_content} $(cat $(template_path item) |
+      template_subst URL "${url}" |
+      template_subst HEADING "${heading}" |
+      template_subst THUMBNAIL "$(publish_image ${thumbnail})")"
   done
-  generate_footer >> ${outfile}
+  unset IFS
+
+  index_content=$(cat $(template_path index) |
+    template_subst HEADING "${title}" |
+    template_subst CONTENT "${index_content}")
+
+  cat $(template_path document) |
+    template_subst TITLE "${title}" |
+    template_subst CONTENT "${index_content}" |
+    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')" |
+    tidy -quiet -indent -o ${outfile}
 }
 
 function description_from_filename() {
@@ -144,7 +144,18 @@ function description_from_filename() {
   fi
 }
 
-html_files=()
+function timestamp_from_filename() {
+  # TODO: print at most one line
+  echo "${1}" | grep -oP -m1 '[0-9]{9,}'
+}
+
+function timestamp_from_file() {
+  filename=${1}
+  date -d "@$(stat -c '%Y' $filename)" '+%a %b %d %T %Z %Y'
+}
+
+
+index_data=()
 rebuild_all=0
 ##  Options:
 while (( "$#" ));
@@ -175,14 +186,12 @@ do
   shift
 done
 
-if (( ${#html_files[@]} == 0 )); then
-  logerr "No files processed.  Supply the path to one or more manifest files"
-  usage
-  exit 1
-fi
+# if (( ${#index_data[@]} == 0 )); then
+#   logerr "No files processed.  Supply the path to one or more manifest files"
+#   usage
+#   exit 1
+# fi
 
-# Generate index
-log "Generating index"
 generate_index
 
 exit # normal exit

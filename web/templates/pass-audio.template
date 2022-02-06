@@ -1,0 +1,8 @@
+<div>
+<p>Hear the audio from this pass.</p>
+<audio controls>
+  <source src="{{WAV_FILE}}" type="audio/wav">
+  <span>Your browser does not support audio.</span>
+</audio>
+<p><a href="{{WAV_FILE}}">Download</a> the demodulated audio and decode the images yourself.</p>
+</div>
