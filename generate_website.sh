@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 ## Generates a "website" from decoded satellite data
 ## 
 ## Usage: __PROG__ [options] file
@@ -16,10 +16,6 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 source ${rootdir}/lib/website_generatorlib.sh
-
-index_item_file="/tmp/wxrx-index"
-rm -f ${index_item_file}
-
 function render_pass_audio() {
   file=${1}
   path=$(publish_audio ${file})
@@ -154,9 +150,7 @@ function timestamp_from_file() {
   date -d "@$(stat -c '%Y' $filename)" '+%a %b %d %T %Z %Y'
 }
 
-
-index_data=()
-rebuild_all=0
+function process_args() {
 ##  Options:
 while (( "$#" ));
 do
@@ -185,13 +179,30 @@ do
   esac
   shift
 done
+}
 
-# if (( ${#index_data[@]} == 0 )); then
-#   logerr "No files processed.  Supply the path to one or more manifest files"
-#   usage
-#   exit 1
-# fi
+# If sourced, return now
+# The ensures sourcing script only gets libraries
+if [ "${0}" != "${BASH_SOURCE[0]}" ]; then
+  return
+fi
+
+# -- Do work below here --
+
+index_item_file="/tmp/wxrx-index"
+rm -f ${index_item_file}
+index_data=()
+rebuild_all=0
+
+process_args $@
+
+# index_data should have elements containing details of pages to include in
+# the index.  If no pages were built, exit now with an error status
+if (( ${#index_data[@]} == 0 )); then
+  logerr "No files processed.  Supply the path to one or more manifest files"
+  usage
+  exit 1
+fi
 
 generate_index
 
-exit # normal exit
