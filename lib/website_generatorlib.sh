@@ -34,9 +34,14 @@ function template_fsubst() {
   echo "TODO: implement website_generatorlib.sh:${0}"
 }
 
+# Moves a file to the WXRX_WEB_PUBDIR
+# @param file path
+# @param destination path (optional), if not supplied the path part of the first argument is used
+# @side_effect copies file in first arg to the WXRX_WEB_PUBDIR tree
+# @output relative path (from WXRX_WEB_PUBDUR)
 function move_to_public() {
   src=${1}
-  relative_path=${2:-${1}}
+  relative_path=$([[ ${2} =~ \/$ ]] && echo "${2}${1}" || echo "${2:-${1}}")
   dest=${WXRX_WEB_PUBDIR}/${relative_path}
   mkdir -p $(dirname ${dest})
   cp ${src} ${dest}
