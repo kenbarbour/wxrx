@@ -13,9 +13,15 @@
 ##
 prog="$0"
 me=${HELP:-`basename "$prog"`}
-rootdir=$(dirname $(realpath $0))
+rootdir=$(dirname $(realpath ${BASH_SOURCE[0]}))
 source ${rootdir}/lib/utils.sh
 source ${rootdir}/lib/website_generatorlib.sh
+
+# Renders the markup for a pass audio file
+# Requires a file in $WXRX_WEB_DIR/templates/pass_audio.template
+# @param file path to render
+# @output markup to stdout
+# @side-effect produces an audio file in public webroot
 function render_pass_audio() {
   file=${1}
   path=$(publish_audio ${file})
@@ -31,6 +37,14 @@ function render_pass_image() {
     template_subst SRC "${path}" |
     template_subst ALT "Decoded satellite image" |
     template_subst CAPTION "${caption}"
+}
+
+function render_index_item() {
+  url=${1}
+  title=${2}
+  thumbnail=${3}
+  cat ${WXRX_WEB_TEMPLATES}/item.template |
+  url="${url}" title="${title}" thumbnail="${thumbnail}" envsubst
 }
 
 function generate_manifest_thumbnail() {

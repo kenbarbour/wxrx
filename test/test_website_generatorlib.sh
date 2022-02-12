@@ -4,6 +4,32 @@ me=${HELP:-$(basename "$prog")}
 rootdir=$(dirname $(dirname $(realpath ${BASH_SOURCE[0]})))
 unit=${rootdir}/lib/website_generatorlib.sh
 
+test_source_unit() {
+  WXRX_WEB_DIR=${SHUNIT_TMPDIR}/test-source
+  WXRX_WEB_TEMPLATES=${SHUNIT_TMPDIR}/test-source/foo
+  WXRX_WEB_PUBDIR=${SHUNIT_TMPDIR}/test-source/bar
+  source ${unit}
+
+  assertEquals "${SHUNIT_TMPDIR}/test-source" "${WXRX_WEB_DIR}"
+  assertEquals "${SHUNIT_TMPDIR}/test-source/foo" "${WXRX_WEB_TEMPLATES}"
+  assertEquals "${SHUNIT_TMPDIR}/test-source/bar" "${WXRX_WEB_PUBDIR}"
+}
+
+test_template_path() {
+  WXRX_WEB_TEMPLATES=${SHUNIT_TMPDIR}/template_path
+  mkdir -p ${WXRX_WEB_TEMPLATES}
+  source ${unit}
+
+  touch ${WXRX_WEB_TEMPLATES}/foo.template
+
+  assertEquals "${WXRX_WEB_TEMPLATES}/foo.template" "$(template_path foo)"
+
+  template_path 'bar'
+  retval=$?
+  assertFalse "missing templates should have non-zero exit status" "$retval"
+  assertEquals "" "$(template_path bar)"
+}
+
 test_template_subst() {
   source ${unit}
 

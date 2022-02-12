@@ -4,20 +4,19 @@ WXRX_WEB_DIR=${WXRX_WEB_DIR:=~/wxrx/web}
 WXRX_WEB_TEMPLATES=${WXRX_WEB_TEMPLATES:="${WXRX_WEB_DIR}/templates"}
 WXRX_WEB_PUBDIR=${WXRX_WEB_PUBDIR:="${WXRX_WEB_DIR}/public"}
 
-
-function render_index_item() {
-  url=${1}
-  title=${2}
-  thumbnail=${3}
-  cat ${WXRX_WEB_TEMPLATES}/item.template |
-  url="${url}" title="${title}" thumbnail="${thumbnail}" envsubst
-}
-
+# Determine the path of a template
+# @param name
+# @output path to template
+# @return non-zero if path does not exist
 function template_path() {
-  echo ${WXRX_WEB_TEMPLATES}/${1}.template
+  file=${WXRX_WEB_TEMPLATES}/${1}.template
+  if [ -f "$file" ]; then
+    echo $file
+    return
+  fi
+  return 1
 }
 
-##
 # Replaces every "{{$1}}" in stdin with $2
 # @param VAR
 # @param replacement
