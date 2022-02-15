@@ -20,6 +20,7 @@ now=$(date +%s)
 # bandwidth = 2 * (17kHz deviation + 2.4kHz tone) * doppler shift (~1.2kHz)
 # wavfile is determined by options
 
+function process_args() {
 while (( "$#" ))
 do
   case $1 in
@@ -91,6 +92,7 @@ do
   esac
   shift
 done
+}
 
 function demodulate_pass() {
   timeout ${duration} rtl_fm -T -f ${freq} -M fm ${gain_flag} -s ${bandwidth} -r ${sample_rate} -E wav -E deemp -F 9 -A fast
@@ -103,6 +105,14 @@ function resample_pass() {
 function monitor_pass() {
   ( [ -z $monitor ] && cat || tee >(play -r ${sample_rate} -t raw -es -b 16 -c 1 -V1 -) )
 }
+
+# If sourced, return now
+if [ "${0}" != "${BASH_SOURCE[0]}" ]; then
+  return
+fi
+
+# -- Do work below here --
+process_args $@
 
 log "Current timestamp: %s" ${now}
 log "Listening for signal on ${freq} for ${duration} seconds (gain: ${gain})"
