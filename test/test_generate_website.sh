@@ -5,49 +5,25 @@
 ##
 prog="$0"
 me=`basename "$prog"`
+unit=$(realpath $(dirname "$0")/../generate_website.sh)
 
-tmp_dir='./tmp'
-mkdir -p ${tmp_dir}
 
-# Lines starting with '##' are intended for usage documentation
-function usage() {
-  grep '^##' "$prog" | sed -e 's/^##\s\?//' -e "s/__PROG__/$me/" 1>&2
+test_timestamp_from_filename() {
+  source $unit
+  assertEquals "1644452667" "$(timestamp_from_filename foo-1644452667-bar.baz)"
 }
 
-# Like printf, but prints to stderr with prettier formatting if TTY
-function logerr() {
-  if [ -t 2 ]; then
-    printf "$(tput setaf 1)ERROR$(tput sgr0) ${1}\n" ${@:2} 1>&2
-  else
-    printf "${1}\n" ${@:2} 1>&2
-  fi
+test_render_pass_audio() {
+  WXRX_WEB_DIR=${SHUNIT_TMPDIR}
+  mkdir -p ${WXRX_WEB_DIR}/templates
+  mkdir -p ${WXRX_WEB_DIR}/public
+  echo << EOF > ${WXRX_WEB_DIR}/templates/pass-audio.template
+<audio>
+{{WAV_FILE}}
+</audio>
+EOF
 }
 
-testEquality() {
-  assertEquals 1 1
-}
 
-testGenerateWebsite() {
-  data_dir=${tmp_dir}/testGenerateWebsite/data
-  web_pubdir=${tmp_dir}/testGenerateWebsite/public
-  bin_path=$(realpath ../generate_website.sh)
-
-  # setup a clean directory containing decoded pass data
-  rm -Rf ${data_dir}
-  rm -Rf ${web_pubdir}
-  mkdir -p ${data_dir}
-  mkdir -p ${web_pubdir}
-  cp -p ./fixtures/test_generate_website/* ${data_dir}
-
-  pushd ${data_dir}
-  WXRX_WEB_PUBDIR=${web_pubdir} ${bin_path} *-manifest.txt
-  
-  # index file exists
-  indexFile=${web_pubdir}/index.html
-  assertTrue "${indexFile} not created" "[ -f ${indexFile} ]"
-
-  popd
-
-}
 
 . shunit2
