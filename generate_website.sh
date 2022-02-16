@@ -18,27 +18,33 @@ source ${rootdir}/lib/utils.sh
 source ${rootdir}/lib/website_generatorlib.sh
 
 # Renders the markup for a pass audio file
-# Requires a file in $WXRX_WEB_DIR/templates/pass_audio.template
+# Requires a file in $WXRX_WEB_DIR/templates/pass-audio.template
 # @param file path to render
 # @output markup to stdout
-# @side-effect produces an audio file in public webroot
 function render_pass_audio() {
-  file=${1}
-  path=$(publish_audio ${file})
+  path=${1}
   cat $(template_path pass-audio) |
     template_subst WAV_FILE "${path}"
 }
 
+# Renders the markup for a pass image file
+# Requires a file in $WXRX_WEB_DIR/templates/pass-image.template
+# @param image file path to render markup for
+# @output markup to stdout
 function render_pass_image() {
-  file=${1}
-  path=$(publish_image ${file})
-  caption=$(description_from_filename "${1}")
+  path=${1}
+  caption=$(description_from_filename $(basename "${1}"))
   cat $(template_path pass-image) |
     template_subst SRC "${path}" |
     template_subst ALT "Decoded satellite image" |
     template_subst CAPTION "${caption}"
 }
 
+# Renders the markup for an item to include in the site inded
+# @param url path to item (usually html page)
+# @param string Title
+# @param string thumbnail image
+# @output markup to stdout
 function render_index_item() {
   url=${1}
   title=${2}
@@ -47,13 +53,47 @@ function render_index_item() {
   url="${url}" title="${title}" thumbnail="${thumbnail}" envsubst
 }
 
+# @param manifest file
+# @output path to image file
 function generate_manifest_thumbnail() {
   #TODO: generate an actual thumbnail and move it to the web dir
   # skip if file exists, unless forced
   cat $1 | grep -m1 '\.png'
 }
 
-#
+# Render the markup to represent a full HTML page
+# for every item associated with a pass
+# @param ... file path to item from manifest
+function render_page() {
+  for file in $@
+  do
+    case $file in
+      *.wav)
+        heading=${heading:-$(timestring_from_filename "${file}")}
+        content=$(echo "${content}" "$(render_pass_audio "$file")")
+        ;;
+      *.png)
+        heading=${heading:-$(timestring_from_filename "${file}")}
+        content=$(echo "${content}" "$(render_pass_image "$file")")
+        ;;
+      *)
+        content="${content}<!-- unknown file type: ${file} -->"
+        ;;
+    esac
+  done
+
+  body=$(cat $(template_path pass) |
+    template_subst TITLE "${heading}" |
+    template_subst CONTENT "${content}"
+  )
+
+  cat $(template_path document) |
+    template_subst TITLE "${heading}" |
+    template_subst CONTENT "${body}" |
+    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')"
+}
+
+# @deprecated
 # @param manifest file
 # @global rebuild_all read
 # @side effect creates an .html file
@@ -112,6 +152,10 @@ function generate_from_manifest() {
   
 }
 
+# Generates the index page
+# @global index_item_file - read to determine which files to index
+# @side-effect creates/updates ${WXRX_WEB_PUBDIR}/index.html
+# @output logs
 function generate_index() {
   outfile="${WXRX_WEB_PUBDIR}/index.html"
   log "Generating index file: %s" "${outfile}"
@@ -141,6 +185,12 @@ function generate_index() {
     tidy -quiet -indent -o ${outfile}
 }
 
+#
+# Makes an attempt to describe an image based on the filename
+# This takes advantage of predictable image filenames generated
+# by wxrx
+# @param filename
+# @output string description to stdout
 function description_from_filename() {
   filename=${1}
   re="(noaa_1[589])-([0-9]+)-([a-Z\-]+)"
@@ -162,6 +212,10 @@ function timestamp_from_filename() {
 function timestamp_from_file() {
   filename=${1}
   date -d "@$(stat -c '%Y' $filename)" '+%a %b %d %T %Z %Y'
+}
+
+function timestring_from_filename() {
+  date -d "@$(timestamp_from_filename ${1})" '+%a %b %d %T %Z %Y'
 }
 
 function process_args() {

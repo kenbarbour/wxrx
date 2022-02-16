@@ -1,0 +1,11 @@
+<document>
+  <title>
+    {{TITLE}}
+  </title>
+  <content>
+    {{CONTENT}}
+  </content>
+  <generated-at>
+    {{GENERATED_AT}}
+  </generated-at>
+</document>

@@ -1,0 +1,5 @@
+<h1>Latest Satellite Passes</h1>
+<p>These are the latest satellites images.</p>
+<div>
+{{CONTENT}}
+</div>

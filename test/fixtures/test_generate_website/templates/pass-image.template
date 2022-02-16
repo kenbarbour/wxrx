@@ -1,0 +1,5 @@
+<image>
+  <source>{{SRC}}</source>
+  <alt>{{ALT}}</alt>
+  <caption>{{CAPTION}}</caption>
+</image>

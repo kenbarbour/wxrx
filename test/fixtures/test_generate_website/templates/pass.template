@@ -1,0 +1,8 @@
+<pass>
+  <title>
+    {{TITLE}}
+  </title>
+  <content>
+    {{CONTENT}}
+  </content>
+</pass>
