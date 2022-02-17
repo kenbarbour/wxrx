@@ -40,9 +40,10 @@ test_render_page() {
   #TODO: test for expected URLs and values in output
 
   assertNotNull 'expected wavfile in markup' "`grep 'noaa_15-1643805264.wav' ${stdoutF}`"
-  assertNotNull 'expected thermal image' "`grep '-therm.png' ${stdoutF}`"
-  assertNotNull 'expected MCIR image' "`grep '-MCIR.png' ${stoutF}`"
-
+  assertNotNull 'expected thermal image' "`grep 'noaa_15-1643805264-therm.png' ${stdoutF}`"
+  assertNotNull 'expected MCIR image' "`grep 'noaa_15-1643805264-MCIR.png' ${stdoutF}`"
+  assertNotNull 'expected title text' "`grep -F 'Wed Feb 02 07:34:24 EST 2022' ${stdoutF}`"
+  assertNotNull 'expected a description' "`grep -F 'NOAA-15 therm recorded' ${stdoutF}`"
 }
 
 
