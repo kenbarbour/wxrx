@@ -64,6 +64,7 @@ function generate_manifest_thumbnail() {
 # Render the markup to represent a full HTML page
 # for every item associated with a pass
 # @param ... file path to item from manifest
+# @output rendered markup to stdout
 function render_page() {
   for file in $@
   do
@@ -91,6 +92,20 @@ function render_page() {
     template_subst TITLE "${heading}" |
     template_subst CONTENT "${body}" |
     template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')"
+}
+
+# Reads a manifest file
+# @param manifest file
+# @param path to public directory
+# @side-effect creates files in public web directory
+# @output file paths relative to public directory
+function publish_manifest_files() {
+  manifest=${1}
+  web_path=${2:-}
+  for file in $(cat $manifest)
+  do
+    echo $file
+  done
 }
 
 # @deprecated
@@ -204,6 +219,15 @@ function description_from_filename() {
   fi
 }
 
+# Searches from a directory for manifest files
+# @param directory
+# @output path to manifest files from directory
+function find_manifest_files() {
+  find ${1:-.} -name "*-manifest.txt" |
+  sed 's/^\.\///' |
+  sort
+}
+
 function timestamp_from_filename() {
   # TODO: print at most one line
   echo "${1}" | grep -oP -m1 '[0-9]{9,}'
@@ -216,6 +240,31 @@ function timestamp_from_file() {
 
 function timestring_from_filename() {
   date -d "@$(timestamp_from_filename ${1})" '+%a %b %d %T %Z %Y'
+}
+
+# Generates a website by inspecting the directory tree at '.'
+# and publishing files to WXRX_WEB_PUBDIR
+# @param path to data (manifests will be searched from this tree)
+# @side-effect generates files in WXRX_WEB_PUBDIR
+# @output tab delimited: timestamp, html, thumbnail
+function generate_pages() {
+  data_dir=${1:-.}
+  for manifest in $(find_manifest_files "${data_dir}")
+  do
+    # each manifest file should turn into an html file, within
+    # WXRX_WEB_PUBDIR, mirroring the manifest path
+    relpath=$(dirname "${manifest}")
+    timestamp=$(timestamp_from_filename "${manifest}")
+    html_src="${relpath}/$(basename ${manifest} -manifest.txt).html"
+    html_src=$(echo "${html_src}" | sed 's/^\.\///')
+    html_path="${WXRX_WEB_PUBDIR}/${html_src}"
+    files=$(publish_manifest_files "${manifest}" "${relpath}")
+    thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
+    thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
+    mkdir -p "$(dirname ${html_path})"
+    render_page ${files} >"${html_path}"
+    printf "%s\t%s\t%s\n" "${timestamp}" "${html_src}" "${thumbnail_src}"
+  done
 }
 
 function process_args() {
@@ -236,18 +285,15 @@ do
       ;;
 
     *)
-      # if this is an unrecognized flag, log an error
-      if [[ $1 == -* ]] ; then
-        logerr "Unknown option %s.  If you meant to process the a file named '%s' use './%s'" ${1} ${1} ${1}
-        usage
-        exit 1
-      fi
-      generate_from_manifest ${1}
+      logerr "Unknown option %s.  If you meant to process the a file named '%s' use './%s'" ${1} ${1} ${1}
+      usage
+      exit 1
       ;;
   esac
   shift
 done
 }
+
 
 # If sourced, return now
 # The ensures sourcing script only gets libraries
