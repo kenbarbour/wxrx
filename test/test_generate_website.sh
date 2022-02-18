@@ -43,6 +43,33 @@ test_render_page() {
   assertNotNull 'expected a description' "`grep -F 'NOAA-15 therm recorded' ${stdoutF}`"
 }
 
+test_publish_file() {
+  WXRX_WEB_PUBDIR=${SHUNIT_TMPDIR}/test_generate_website/publish_file
+  fileToMove="${fixture_dir}/test_generate_website/noaa_15-1643805264.wav" 
+  stdoutF=${SHUNIT_TMPDIR}/stdout
+  stderrF=${SHUNIT_TMPDIR}/stderr
+  source ${unit}
+
+  ## Test publish to a subdir
+  publish_file "${fileToMove}" "foo/bar" >${stdoutF} 2>${stderrF}
+  rtrn=$?
+  assertTrue "expected 0 exit status" ${rtrn}
+  assertNull "unexpected error output" "`cat ${stderrF}`"
+  assertEquals "noaa_15-1643805264.wav" "`cat ${stdoutF}`"
+  assertTrue "expected file" "[ -f ${WXRX_WEB_PUBDIR}/foo/bar/noaa_15-1643805264.wav ]"
+
+  # Test publish to root
+  publish_file "${fileToMove}" >${stdoutF} 2>${stderrF}
+  rtrn=$?
+  assertTrue "expected 0 exit status" ${rtrn}
+  assertNull "unexpected error output" "`cat ${stderrF}`"
+  assertEquals "noaa_15-1643805264.wav" "`cat ${stdoutF}`"
+  assertTrue "expected file" "[ -f ${WXRX_WEB_PUBDIR}/noaa_15-1643805264.wav ]"
+
+tree ${WXRX_WEB_PUBDIR}
+  cat "${stderrF}"
+}
+
 test_find_manifest_files() {
   stdoutF=${SHUNIT_TMPDIR}/stdout
   stderrF=${SHUNIT_TMPDIR}/stderr
@@ -117,5 +144,27 @@ EOF
   assertNotNull 'expected generated date in output' "`grep -F 'Generated Timestamp' ${stdoutF}`"
   assertNotNull 'expected url' "`grep -F 'bar-passes/noaa_15-1643805264.html' ${stdoutF}`"
 }
+
+# test_generate_website() {
+#   stdoutF=${SHUNIT_TMPDIR}/stdout
+#   stderrF=${SHUNIT_TMPDIR}/stderr
+#   WXRX_WEB_TEMPLATES=${fixture_dir}/test_generate_website/templates
+#   WXRX_WEB_PUBDIR=${SHUNIT_TMPDIR}/test_generate_website/public
+#   mkdir -p "${WXRX_WEB_PUBDIR}"
+#   source ${unit}
+#   pushd ${fixture_dir}/test_generate_website >/dev/null
+# 
+#   generate_website >${stdoutF} 2>${stderrF}
+#   rtrn=$?
+#   assertTrue "expected 0 return status" ${rtrn}
+#   assertNull "unexpected stderr" "`cat ${stderrF}`"
+#   assertTrue "expected index file" "[ -f ${WXRX_WEB_PUBDIR}/index.html ]"
+#   assertTrue "expected pass html" "[ -f ${WXRX_WEB_PUBDIR}/noaa_15-1643805264.html ]"
+#   assertTrue "expected pass image" "[ -f ${WXRX_WEB_PUBDIR}/noaa_15-1643805264-MCIR.png ]"
+#   assertTrue "expected pass audio" "[ -f ${WXRX_WEB_PUBDIR}/noaa_15-1643805264.wav ]"
+#   assertTrue "expected bar-passes directory" "[ -d ${WXRX_WEB_PUBDIR}/bar-passes ]"
+#   assertTrue "expected foo-passes directory" "[ -d ${WXRX_WEB_PUBDIR}/foo-passes ]"
+#   popd >/dev/null
+# }
 
 . shunit2

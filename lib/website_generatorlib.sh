@@ -38,6 +38,7 @@ function template_fsubst() {
 # @param destination path (optional), if not supplied the path part of the first argument is used
 # @side_effect copies file in first arg to the WXRX_WEB_PUBDIR tree
 # @output relative path (from WXRX_WEB_PUBDUR)
+# @deprecated - use publish_file
 function move_to_public() {
   src=${1}
   relative_path=$([[ ${2} =~ \/$ ]] && echo "${2}${1}" || echo "${2:-${1}}")

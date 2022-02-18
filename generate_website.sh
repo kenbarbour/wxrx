@@ -98,109 +98,33 @@ function render_page() {
 
 # Reads a manifest file
 # @param manifest file
-# @param path to public directory
+# @param path relative to WXRX_WEB_PUBDIR
 # @side-effect creates files in public web directory
-# @output file paths relative to public directory
-function publish_manifest_files() {
+# @output filenames
+# TODO: move these files
+function publish_file() {
+  src=${1}
+  dest_path=${2}
+  dest=${WXRX_WEB_PUBDIR}/${dest_path}/$(basename ${src})
+  mkdir -p $(dirname ${dest})
+  cp ${src} ${dest}
+  echo $(basename "${dest}")
+}
+
+# Publishes the contents of a manifest to web
+# @param manifest file
+# @param relative path of files in manifest to WXRX_WEB_PUBDIR
+# @output filenames (from publish_file)
+function publish_manifest() {
   manifest=${1}
-  web_path=${2:-}
+  relpath=${2:-}
+  manifest_dir=$(dirname ${manifest})
   for file in $(cat $manifest)
   do
-    echo $file
+    publish_file "${manifest_dir}/$file" "$relpath"
   done
 }
 
-# @deprecated
-# @param manifest file
-# @global rebuild_all read
-# @side effect creates an .html file
-function generate_from_manifest() {
-  manifest=${1}
-  relative_path="$(basename "${manifest}" -manifest.txt).html"
-  outfile="${WXRX_WEB_PUBDIR}/${relative_path}"
-  timestamp=$(timestamp_from_filename $(basename ${relative_path}))
-
-  title="Example Title"
-  heading="Example heading"
-  thumbnail=$(generate_manifest_thumbnail "${1}")
-  # count this file as processed
-  printf "%d\t%s\t%s\n" "${timestamp}" "${relative_path}" "${thumbnail}" >> ${index_item_file}
-
-
-  if [ -f $outfile ] && [ "$outfile" -nt "${manifest}" ]; then
-    if [ $rebuild_all -gt 0 ]; then
-      log "--force option used; Re-generating %s" "${outfile}"
-    else
-      log "%s already exists and is newer than manifest file. Skipping" "${outfile}"
-      return
-    fi
-  fi
-
-  log "Generating page %s from %s" "$outfile" "${manifest}"
-  article_content=""
-  for file in $(cat ${manifest})
-  do
-    case $file in
-      *.wav)
-        log "\t...wavfile %s" "${file}"
-        heading="$(timestamp_from_file ${file})"
-        title="Satellite Pass - ${heading}"
-        article_content="${article_content}$(render_pass_audio "$file")"
-        ;;
-      *.png)
-        log "\t..image %s" "${file}"
-        article_content="${article_content}$(render_pass_image "$file")"
-        ;;
-      *)
-        logerr "Not sure what to do with this file: %s" "${file}"
-        ;;
-    esac
-  done
-
-  content=$(cat $(template_path pass) |
-    template_subst TITLE "${heading}" |
-    template_subst CONTENT "${article_content}")
-
-  cat $(template_path document) |
-    template_subst TITLE "${title}" |
-    template_subst CONTENT "${content}" |
-    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')" |
-    tidy -quiet -indent -o ${outfile}
-  
-}
-
-# Generates the index page
-# @global index_item_file - read to determine which files to index
-# @side-effect creates/updates ${WXRX_WEB_PUBDIR}/index.html
-# @output logs
-function generate_index() {
-  outfile="${WXRX_WEB_PUBDIR}/index.html"
-  log "Generating index file: %s" "${outfile}"
-  index_content=""
-  IFS=$'\n'
-  for line in $(tac $index_item_file); do
-    timestamp=$(echo "${line}" | cut -f1)
-    url=$(echo "${line}" | cut -f2)
-    heading=$(date -d "@$(timestamp_from_filename "${url}")" '+%a %b %d %T %Z %Y')
-    thumbnail=$(echo "${line}" | cut -f3)
-    log "\t...generating item: %s" "${url}"
-    index_content="${index_content} $(cat $(template_path item) |
-      template_subst URL "${url}" |
-      template_subst HEADING "${heading}" |
-      template_subst THUMBNAIL "$(publish_image ${thumbnail})")"
-  done
-  unset IFS
-
-  index_content=$(cat $(template_path index) |
-    template_subst HEADING "${title}" |
-    template_subst CONTENT "${index_content}")
-
-  cat $(template_path document) |
-    template_subst TITLE "${title}" |
-    template_subst CONTENT "${index_content}" |
-    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')" |
-    tidy -quiet -indent -o ${outfile}
-}
 
 #
 # Makes an attempt to describe an image based on the filename
@@ -249,6 +173,7 @@ function timestring_from_filename() {
 # @param path to data (manifests will be searched from this tree)
 # @side-effect generates files in WXRX_WEB_PUBDIR
 # @output tab delimited: timestamp, html, thumbnail
+# TODO: avoid regenerating pages
 function generate_pages() {
   data_dir=${1:-.}
   for manifest in $(find_manifest_files "${data_dir}")
@@ -260,7 +185,7 @@ function generate_pages() {
     html_src="${relpath}/$(basename ${manifest} -manifest.txt).html"
     html_src=$(echo "${html_src}" | sed 's/^\.\///')
     html_path="${WXRX_WEB_PUBDIR}/${html_src}"
-    files=$(publish_manifest_files "${manifest}" "${relpath}")
+    files=$(publish_manifest "${manifest}" "${relpath}")
     thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
     thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
     mkdir -p "$(dirname ${html_path})"
@@ -302,6 +227,10 @@ function render_index() {
   
 }
 
+function generate_website() {
+  generate_pages | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
+}
+
 function process_args() {
 ##  Options:
 while (( "$#" ));
@@ -314,13 +243,13 @@ do
       exit
       ;;
 
-## --force, -f                  Force rebuild of previously generated pages
-    '--force' | '-f')
-      rebuild_all=1
-      ;;
+# ## --force, -f                  Force rebuild of previously generated pages
+#    '--force' | '-f')
+#      rebuild_all=1
+#      ;;
 
     *)
-      logerr "Unknown option %s.  If you meant to process the a file named '%s' use './%s'" ${1} ${1} ${1}
+      logerr "Unknown option %s." ${1}
       usage
       exit 1
       ;;
@@ -338,20 +267,6 @@ fi
 
 # -- Do work below here --
 
-index_item_file="/tmp/wxrx-index"
-rm -f ${index_item_file}
-index_data=()
-rebuild_all=0
-
 process_args $@
 
-# index_data should have elements containing details of pages to include in
-# the index.  If no pages were built, exit now with an error status
-if (( ${#index_data[@]} == 0 )); then
-  logerr "No files processed.  Supply the path to one or more manifest files"
-  usage
-  exit 1
-fi
-
-generate_index
-
+generate_website
