@@ -69,6 +69,7 @@ EOF
 test_generate_pages() {
   stdoutF=${SHUNIT_TMPDIR}/stdout
   stderrF=${SHUNIT_TMPDIR}/stderr
+  expectedF=${SHUNIT_TMPDIR}/expected
   WXRX_WEB_PUBDIR=${SHUNIT_TMPDIR}/test_generate_website/public
   WXRX_WEB_TEMPLATES=${fixture_dir}/test_generate_website/templates
   data_dir=${fixture_dir}/test_generate_website
@@ -93,6 +94,28 @@ EOF
 
   cat "${stderrF}"
   popd >/dev/null
+}
+
+test_render_index() {
+  stdoutF=${SHUNIT_TMPDIR}/stdout
+  stderrF=${SHUNIT_TMPDIR}/stderr
+  expectedF=${SHUNIT_TMPDIR}/expected
+  WXRX_WEB_TEMPLATES=${fixture_dir}/test_generate_website/templates
+  source ${unit}
+
+  render_index "Expected Title" "Generated Timestamp" << EOF >${stdoutF} 2>${stderrF}
+1643805264	bar-passes/noaa_15-1643805264.html	bar-passes/noaa_15-1643805264-MCIR.png
+1643805264	foo-passes/noaa_15-1643805264.html	foo-passes/noaa_15-1643805264-MCIR.png
+1643805264	noaa_15-1643805264.html	noaa_15-1643805264-MCIR.png
+EOF
+
+  rtrn=$?
+  assertTrue "expected 0 return status" ${rtrn}
+  assertNotNull "expected output" "`cat ${stdoutF}`"
+  assertNull "unexpected stderr" "`cat ${stderrF}`"
+  assertNotNull 'expected a title in output' "`grep -F 'Expected Title' ${stdoutF}`"
+  assertNotNull 'expected generated date in output' "`grep -F 'Generated Timestamp' ${stdoutF}`"
+  assertNotNull 'expected url' "`grep -F 'bar-passes/noaa_15-1643805264.html' ${stdoutF}`"
 }
 
 . shunit2

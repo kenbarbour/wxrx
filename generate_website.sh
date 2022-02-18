@@ -50,7 +50,9 @@ function render_index_item() {
   title=${2}
   thumbnail=${3}
   cat ${WXRX_WEB_TEMPLATES}/item.template |
-  url="${url}" title="${title}" thumbnail="${thumbnail}" envsubst
+    template_subst URL "${url}" |
+    template_subst HEADING "${title}" |
+    template_subst THUMBNAIL "${thumbnail}"
 }
 
 # @param manifest file
@@ -265,6 +267,39 @@ function generate_pages() {
     render_page ${files} >"${html_path}"
     printf "%s\t%s\t%s\n" "${timestamp}" "${html_src}" "${thumbnail_src}"
   done
+}
+
+# Renders an index file from input from STDIN
+# Input should be tab-delimited TIMESTAMP, URL, THUMBNAIL_URL
+# The output of `generate_pages` is expected to be used here
+# @param Title (optional)
+# @param Generated timestamp (optional)
+# @input tab delimited items to add to index
+# @output rendered markup to stdout
+function render_index() {
+  title=${1:-Latest Satellite Passes}
+  generated_at=${2:-$(date '+%a %b %d %T %Z %Y')}
+  items=( )
+  while read -r line
+  do
+    timestamp=$(echo "${line}" | cut -f1)
+    url=$(echo "${line}" | cut -f2)
+    heading=$(date -d "@${timestamp}" '+%a %b %d %T %Z %Y')
+    thumbnail=$(echo "${line}" |cut -f3)
+    item=$(render_index_item "${url}" "${heading}" "${thumbnail}")
+    items+=( "${item}" )
+  done
+
+  content=$(echo "${items[@]}")
+
+  document_body=$(cat $(template_path "index") |
+    template_subst CONTENT "${content}")
+
+  cat $(template_path "document") |
+    template_subst CONTENT "${document_body}" |
+    template_subst TITLE "${title}" |
+    template_subst GENERATED_AT "${generated_at}"
+  
 }
 
 function process_args() {

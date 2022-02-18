@@ -1,6 +1,11 @@
-<article>
-  <figure style="max-width: 200px; margin: 1rem auto 3rem;">
-    <a href="{{URL}}"><img src="{{THUMBNAIL}}" style="width: 100%;" alt="Decoded satellite image thumbnail" /></a>
-    <figcaption>{{HEADING}}</figcaption>
-  </figure>
-</article>
+<item>
+  <heading>
+    {{HEADING}}
+  </heading>
+  <url>
+    {{URL}}
+  </url>
+  <thumbnail>
+    {{THUMBNAIL}}
+  </thumbnail>
+</item>
