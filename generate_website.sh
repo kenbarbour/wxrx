@@ -3,11 +3,10 @@
 ## 
 ## Usage: __PROG__ [options] file
 ##
-## Supply one or more manifest files
-## A manifest file is a text file containing the paths to every file used in
-## a decoding, including the .wav file and every .png.
-##
+## Run from the root of a directory tree containing manifest files.
 ## Each manifest file is used to generate a static web-page.
+## Web pages are built from templates in WXRX_WEB_TEMPLATES and
+## placed in WXRX_WEB_PUBDIR
 ##
 ## Put this directory on your web server or sync to your online storage "bucket".
 ##
@@ -17,42 +16,31 @@ rootdir=$(dirname $(realpath ${BASH_SOURCE[0]}))
 source ${rootdir}/lib/utils.sh
 source ${rootdir}/lib/website_generatorlib.sh
 
-# Renders the markup for a pass audio file
-# Requires a file in $WXRX_WEB_DIR/templates/pass-audio.template
-# @param file path to render
-# @output markup to stdout
-function render_pass_audio() {
-  path=${1}
-  cat $(template_path pass-audio) |
-    template_subst WAV_FILE "${path}"
+# Makes an attempt to describe an image based on the filename
+# This takes advantage of predictable image filenames generated
+# by wxrx
+# @param filename
+# @output string description to stdout
+function description_from_filename() {
+  filename=${1}
+  re="(noaa_1[589])-([0-9]+)-([a-Z\-]+)"
+  if [[ $filename =~ $re ]]; then
+    satname=$(echo "${BASH_REMATCH[1]}" | awk '{ gsub("_", "-"); print toupper($0) }')
+    timestamp=$(date -d "@${BASH_REMATCH[2]}" '+%a %b %d %T %Z %Y')
+    enhancement=${BASH_REMATCH[3]}
+    echo "${satname} $enhancement recorded ${timestamp}"
+  else
+    echo $(basename ${filename} .png)
+  fi
 }
 
-# Renders the markup for a pass image file
-# Requires a file in $WXRX_WEB_DIR/templates/pass-image.template
-# @param image file path to render markup for
-# @output markup to stdout
-function render_pass_image() {
-  path=${1}
-  caption=$(description_from_filename $(basename "${1}"))
-  cat $(template_path pass-image) |
-    template_subst SRC "${path}" |
-    template_subst ALT "Decoded satellite image" |
-    template_subst CAPTION "${caption}"
-}
-
-# Renders the markup for an item to include in the site inded
-# @param url path to item (usually html page)
-# @param string Title
-# @param string thumbnail image
-# @output markup to stdout
-function render_index_item() {
-  url=${1}
-  title=${2}
-  thumbnail=${3}
-  cat ${WXRX_WEB_TEMPLATES}/item.template |
-    template_subst URL "${url}" |
-    template_subst HEADING "${title}" |
-    template_subst THUMBNAIL "${thumbnail}"
+# Searches from a directory for manifest files
+# @param directory
+# @output path to manifest files from directory
+function find_manifest_files() {
+  find ${1:-.} -name "*-manifest.txt" |
+  sed 's/^\.\///' |
+  sort
 }
 
 # @param manifest file
@@ -63,37 +51,34 @@ function generate_manifest_thumbnail() {
   cat $1 | grep -m1 '\.png'
 }
 
-# Render the markup to represent a full HTML page
-# for every item associated with a pass
-# @param ... file path to item from manifest
-# @output rendered markup to stdout
-function render_page() {
-  for file in $@
+# Generates a website by inspecting the directory tree at '.'
+# and publishing files to WXRX_WEB_PUBDIR
+# @param path to data (manifests will be searched from this tree)
+# @side-effect generates files in WXRX_WEB_PUBDIR
+# @output tab delimited: timestamp, html, thumbnail
+# TODO: avoid regenerating pages
+function generate_pages() {
+  data_dir=${1:-.}
+  for manifest in $(find_manifest_files "${data_dir}")
   do
-    case $file in
-      *.wav)
-        heading=${heading:-$(timestring_from_filename "${file}")}
-        content=$(echo "${content}" "$(render_pass_audio "$file")")
-        ;;
-      *.png)
-        heading=${heading:-$(timestring_from_filename "${file}")}
-        content=$(echo "${content}" "$(render_pass_image "$file")")
-        ;;
-      *)
-        content="${content}<!-- unknown file type: ${file} -->"
-        ;;
-    esac
+    # each manifest file should turn into an html file, within
+    # WXRX_WEB_PUBDIR, mirroring the manifest path
+    relpath=$(dirname "${manifest}")
+    timestamp=$(timestamp_from_filename "${manifest}")
+    html_src="${relpath}/$(basename ${manifest} -manifest.txt).html"
+    html_src=$(echo "${html_src}" | sed 's/^\.\///')
+    html_path="${WXRX_WEB_PUBDIR}/${html_src}"
+    files=$(publish_manifest "${manifest}" "${relpath}")
+    thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
+    thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
+    mkdir -p "$(dirname ${html_path})"
+    render_page ${files} >"${html_path}"
+    printf "%s\t%s\t%s\n" "${timestamp}" "${html_src}" "${thumbnail_src}"
   done
+}
 
-  body=$(cat $(template_path pass) |
-    template_subst TITLE "${heading}" |
-    template_subst CONTENT "${content}"
-  )
-
-  cat $(template_path document) |
-    template_subst TITLE "${heading}" |
-    template_subst CONTENT "${body}" |
-    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')"
+function generate_website() {
+  generate_pages | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
 }
 
 # Reads a manifest file
@@ -122,75 +107,6 @@ function publish_manifest() {
   for file in $(cat $manifest)
   do
     publish_file "${manifest_dir}/$file" "$relpath"
-  done
-}
-
-
-#
-# Makes an attempt to describe an image based on the filename
-# This takes advantage of predictable image filenames generated
-# by wxrx
-# @param filename
-# @output string description to stdout
-function description_from_filename() {
-  filename=${1}
-  re="(noaa_1[589])-([0-9]+)-([a-Z\-]+)"
-  if [[ $filename =~ $re ]]; then
-    satname=$(echo "${BASH_REMATCH[1]}" | awk '{ gsub("_", "-"); print toupper($0) }')
-    timestamp=$(date -d "@${BASH_REMATCH[2]}" '+%a %b %d %T %Z %Y')
-    enhancement=${BASH_REMATCH[3]}
-    echo "${satname} $enhancement recorded ${timestamp}"
-  else
-    echo $(basename ${filename} .png)
-  fi
-}
-
-# Searches from a directory for manifest files
-# @param directory
-# @output path to manifest files from directory
-function find_manifest_files() {
-  find ${1:-.} -name "*-manifest.txt" |
-  sed 's/^\.\///' |
-  sort
-}
-
-function timestamp_from_filename() {
-  # TODO: print at most one line
-  echo "${1}" | grep -oP -m1 '[0-9]{9,}'
-}
-
-function timestamp_from_file() {
-  filename=${1}
-  date -d "@$(stat -c '%Y' $filename)" '+%a %b %d %T %Z %Y'
-}
-
-function timestring_from_filename() {
-  date -d "@$(timestamp_from_filename ${1})" '+%a %b %d %T %Z %Y'
-}
-
-# Generates a website by inspecting the directory tree at '.'
-# and publishing files to WXRX_WEB_PUBDIR
-# @param path to data (manifests will be searched from this tree)
-# @side-effect generates files in WXRX_WEB_PUBDIR
-# @output tab delimited: timestamp, html, thumbnail
-# TODO: avoid regenerating pages
-function generate_pages() {
-  data_dir=${1:-.}
-  for manifest in $(find_manifest_files "${data_dir}")
-  do
-    # each manifest file should turn into an html file, within
-    # WXRX_WEB_PUBDIR, mirroring the manifest path
-    relpath=$(dirname "${manifest}")
-    timestamp=$(timestamp_from_filename "${manifest}")
-    html_src="${relpath}/$(basename ${manifest} -manifest.txt).html"
-    html_src=$(echo "${html_src}" | sed 's/^\.\///')
-    html_path="${WXRX_WEB_PUBDIR}/${html_src}"
-    files=$(publish_manifest "${manifest}" "${relpath}")
-    thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
-    thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
-    mkdir -p "$(dirname ${html_path})"
-    render_page ${files} >"${html_path}"
-    printf "%s\t%s\t%s\n" "${timestamp}" "${html_src}" "${thumbnail_src}"
   done
 }
 
@@ -227,8 +143,88 @@ function render_index() {
   
 }
 
-function generate_website() {
-  generate_pages | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
+# Renders the markup for an item to include in the site inded
+# @param url path to item (usually html page)
+# @param string Title
+# @param string thumbnail image
+# @output markup to stdout
+function render_index_item() {
+  url=${1}
+  title=${2}
+  thumbnail=${3}
+  cat ${WXRX_WEB_TEMPLATES}/item.template |
+    template_subst URL "${url}" |
+    template_subst HEADING "${title}" |
+    template_subst THUMBNAIL "${thumbnail}"
+}
+
+# Render the markup to represent a full HTML page
+# for every item associated with a pass
+# @param ... file path to item from manifest
+# @output rendered markup to stdout
+function render_page() {
+  for file in $@
+  do
+    case $file in
+      *.wav)
+        heading=${heading:-$(timestring_from_filename "${file}")}
+        content=$(echo "${content}" "$(render_pass_audio "$file")")
+        ;;
+      *.png)
+        heading=${heading:-$(timestring_from_filename "${file}")}
+        content=$(echo "${content}" "$(render_pass_image "$file")")
+        ;;
+      *)
+        content="${content}<!-- unknown file type: ${file} -->"
+        ;;
+    esac
+  done
+
+  body=$(cat $(template_path pass) |
+    template_subst TITLE "${heading}" |
+    template_subst CONTENT "${content}"
+  )
+
+  cat $(template_path document) |
+    template_subst TITLE "${heading}" |
+    template_subst CONTENT "${body}" |
+    template_subst GENERATED_AT "$(date '+%a %b %d %T %Z %Y')"
+}
+
+# Renders the markup for a pass audio file
+# Requires a file in $WXRX_WEB_DIR/templates/pass-audio.template
+# @param file path to render
+# @output markup to stdout
+function render_pass_audio() {
+  path=${1}
+  cat $(template_path pass-audio) |
+    template_subst WAV_FILE "${path}"
+}
+
+# Renders the markup for a pass image file
+# Requires a file in $WXRX_WEB_DIR/templates/pass-image.template
+# @param image file path to render markup for
+# @output markup to stdout
+function render_pass_image() {
+  path=${1}
+  caption=$(description_from_filename $(basename "${1}"))
+  cat $(template_path pass-image) |
+    template_subst SRC "${path}" |
+    template_subst ALT "Decoded satellite image" |
+    template_subst CAPTION "${caption}"
+}
+
+function timestamp_from_file() {
+  filename=${1}
+  date -d "@$(stat -c '%Y' $filename)" '+%a %b %d %T %Z %Y'
+}
+
+function timestamp_from_filename() {
+  echo "${1}" | grep -oP -m1 '[0-9]{9,}'
+}
+
+function timestring_from_filename() {
+  date -d "@$(timestamp_from_filename ${1})" '+%a %b %d %T %Z %Y'
 }
 
 function process_args() {
