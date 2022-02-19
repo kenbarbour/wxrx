@@ -78,7 +78,8 @@ function generate_pages() {
 }
 
 function generate_website() {
-  generate_pages | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
+  data_dir=${1}
+  generate_pages "${data_dir}" | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
 }
 
 # Reads a manifest file
@@ -265,4 +266,7 @@ fi
 
 process_args $@
 
+data_dir=$(pwd)
+log "Generating website\n\tdata source: %s\n\tweb root:  %s" "${data_dir}" "${WXRX_WEB_PUBDIR}"
 generate_website
+log "done"
