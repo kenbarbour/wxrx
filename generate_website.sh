@@ -22,7 +22,7 @@ source ${rootdir}/lib/website_generatorlib.sh
 # @param filename
 # @output string description to stdout
 function description_from_filename() {
-  filename=${1}
+  local filename=${1} satname= timestamp= enhancement= re=
   re="(noaa_1[589])-([0-9]+)-([a-Z\-]+)"
   if [[ $filename =~ $re ]]; then
     satname=$(echo "${BASH_REMATCH[1]}" | awk '{ gsub("_", "-"); print toupper($0) }')
@@ -58,7 +58,7 @@ function generate_manifest_thumbnail() {
 # @output tab delimited: timestamp, html, thumbnail
 # TODO: avoid regenerating pages
 function generate_pages() {
-  data_dir=${1:-.}
+  local data_dir=${1:-.}
   for manifest in $(find_manifest_files "${data_dir}")
   do
     # each manifest file should turn into an html file, within
@@ -78,7 +78,7 @@ function generate_pages() {
 }
 
 function generate_website() {
-  data_dir=${1}
+  local data_dir=${1}
   generate_pages "${data_dir}" | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
 }
 
@@ -164,6 +164,7 @@ function render_index_item() {
 # @param ... file path to item from manifest
 # @output rendered markup to stdout
 function render_page() {
+  local heading= content= body=
   for file in $@
   do
     case $file in
@@ -197,7 +198,7 @@ function render_page() {
 # @param file path to render
 # @output markup to stdout
 function render_pass_audio() {
-  path=${1}
+  local path=${1}
   cat $(template_path pass-audio) |
     template_subst WAV_FILE "${path}"
 }
@@ -207,6 +208,7 @@ function render_pass_audio() {
 # @param image file path to render markup for
 # @output markup to stdout
 function render_pass_image() {
+  local path=${1} caption=
   path=${1}
   caption=$(description_from_filename $(basename "${1}"))
   cat $(template_path pass-image) |
@@ -216,7 +218,7 @@ function render_pass_image() {
 }
 
 function timestamp_from_file() {
-  filename=${1}
+  local filename=${1}
   date -d "@$(stat -c '%Y' $filename)" '+%a %b %d %T %Z %Y'
 }
 
