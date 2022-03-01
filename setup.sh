@@ -7,19 +7,21 @@
 set -o pipefail
 prog="$0"
 me=${HELP:-$(basename "${prog}")}
-rootdir=$(dirname $(realpath $0))
+rootdir=$(dirname $(realpath ${BASH_SOURCE[0]}))
 tmpdir=/tmp/wxrx/setup
 source "${rootdir}/lib/utils.sh"
 
+# Download and install wxtoimg and related utilities
+# @param install path (default ~/.local/)
+# @param path to temporary directory for the downloaded tarball
 function install_wxtoimg() {
-  local url='https://static.kenbarbour.com/download/wxtoimg-linux64-2.10.11-1.tar.gz'
-  local tarfile=${tmpdir}/$(basename ${url})
+  local url=${1:-'https://static.kenbarbour.com/download/wxtoimg-linux64-2.10.11-1.tar.gz'}
 
-  mkdir -p $(dirname $tarfile)
-  curl --output "${tarfile}" "${url}"
-  tar xzf "${tarfile}" -C / || logerr "wxtoimg requires root to install"
+  install_from_targz "${url}" ${@:2}
   log "wxtoimg requires additional steps to install; run 'wxtoimg' manually to complete"
+  # TODO: fix ./usr/bin/xwxtoimg symlink -> ./usr/bin/wxtoimg
 }
+
 
 function has_wxtoimg() {
   command -v wxtoimg &>/dev/null
@@ -27,15 +29,31 @@ function has_wxtoimg() {
 
 function install_predict() {
   local url='https://www.qsl.net/kd2bd/predict-2.2.7.tar.gz'
-  local tarfile=${tmpdir}/$(basename ${url})
+  local installPath=${2:-${tmpdir}/predict}
 
-  mkdir -p $(dirname $tarfile)
-  curl --output "${tarfile}" "${url}"
-  # TODO untar
+  install_from_targz "${url}" "${installPath}" ${@:3}
+
+  # TODO: build steps are needed
+  log "predict requires additional steps to install; run 'predict' manually to complete"
 }
 
 function has_predict() {
-  command -v wxtoimg &>/dev/null
+  command -v predict &>/dev/null
+}
+
+# Download tarfile and install
+# @param url
+# @param install path (default ~/.local/)
+# @param temporary filename for the downloaded tarball (default based on ${tmpdir} and filename)
+function install_from_targz() {
+  local url=${1}
+  local tarfile=${3:-$tmpdir/$(basename ${url})}
+  local installPath=${2:-~/.local/}
+
+  mkdir -p $(dirname $tarfile)
+  mkdir -p ${installPath}
+  curl --silent --output "${tarfile}" "${url}"
+  tar xzf "${tarfile}" -C "${installPath}"
 }
 
 function process_args() {
@@ -69,11 +87,14 @@ fi
 process_args $@
 
 log "Checking for dependencies"
+errorStatus=0
 
 # Install wxtoimg
 if ! has_wxtoimg; then
   log "Installing wxtoimg..."
   install_wxtoimg
+  rtrn=$?
+  errorStatus=$(expr $errorStatus + $rtrn)
 else
   log "wxtoimg already installed"
 fi
@@ -82,14 +103,17 @@ fi
 if [ ! has_predict ]; then
   log "Installing predict"
   install_predict
+  rtrn=$?
+  errorStatus=$(expr $errorStatus + $rtrn)
 else
   log "predict already installed"
 fi
 
-# # TODO: Install rtlsdr
-# if [ ! has_rtl ]; then
-#   log "Installing rtlsdr drivers"
-#   install_rtlsdr
-# else
-#   log "rtlsdr drivers already installed"
-# fi
+# Finish up
+if [ -z errorStatus ]; then
+  log "Setup complete."
+else
+  logerr "Setup did not complete successfully.  See above errors for more details"
+fi
+
+exit $errorStatus
