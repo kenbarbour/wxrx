@@ -53,6 +53,13 @@ do
       shift
       ;;
 
+## --outdir <string>            sets the directory for output files
+    '--outdir')
+      outdir=${2}
+      log "output directory: %s" "${outdir}"
+      shift
+      ;;
+
 ## --noaa-15                    alias --freq 137620000 --outfile noaa_15-${now}.wav
     '--noaa-15')
       freq=137620000
@@ -94,12 +101,17 @@ do
 done
 }
 
+function output_file_path() {
+  local dir=${1:-./} file=${2:-pass.wav}
+  echo "${1}/${2}"
+}
+
 function demodulate_pass() {
   timeout ${duration} rtl_fm -T -f ${freq} -M fm ${gain_flag} -s ${bandwidth} -r ${sample_rate} -E wav -E deemp -F 9 -A fast
 }
 
 function resample_pass() {
-  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - ${wavfile:=pass.wav}
+  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - $(output_file_path "${outdir}" "${outfile}")
 }
 
 function monitor_pass() {
