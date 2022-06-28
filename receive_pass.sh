@@ -17,6 +17,8 @@ gain_flag=''
 sample_rate=11025
 bandwidth=40000
 now=$(date +%s)
+outdir=.
+outfile=pass.wav
 # bandwidth = 2 * (17kHz deviation + 2.4kHz tone) * doppler shift (~1.2kHz)
 # wavfile is determined by options
 
