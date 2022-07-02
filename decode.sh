@@ -3,6 +3,8 @@
 ## 
 ## Usage: __PROG__ [options] wavfile
 ##
+## Files are created as siblings of the wavfile
+##
 prog="$0"
 me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
@@ -22,18 +24,10 @@ function guess_timestamp() {
   expr ${mtime} - ${duration} + 2
 }
 
-# Creates images from a recorded pass on the filesystem
-# @global output_prefix
-# @global satellite
-# @global timestamp
-# @global tle_file
-# @global enhancements
-# @param wavfile path to file to create images from
-# @output one line per file created
 function make_images() {
-  wavfile=${1}
-  prefix=${output_prefix:-$(basename ${wavfile} .wav)}
-  manifest=${prefix}-manifest.txt
+  local wavfile=${1}
+  local prefix="$(dirname ${wavfile})/$(basename ${wavfile} .wav)"
+  local manifest=${prefix}-manifest.txt
 
   # check wavfile exists
   if [ ! -f ${wavfile} ]; then
@@ -41,7 +35,7 @@ function make_images() {
     exit 3
   fi
   log "Creating manifest file ${manifest}"
-  echo "${wavfile}" > ${manifest}
+  echo "$(basename $wavfile)" > ${manifest}
 
   # quietly mkdir -p the output
   mkdir -p $(dirname ${prefix})
@@ -56,8 +50,9 @@ function make_images() {
       logerr "Error generating map"
     else
       log "Generated map ${mapfile}"
+      # Dont include map; it is only used to generate images
+      # echo "$(basename $mapfile)" > ${manifest}
     fi
-    echo ${mapfile}
   fi
   if [ -f $mapfile ]; then
       log "Using map file ${mapfile}"
@@ -75,7 +70,7 @@ function make_images() {
 
     if [ -f ${imgfile} ]; then
       log "Adding file to manifest: ${imgfile}"
-      echo "${imgfile}" >> ${manifest}
+      echo "$(basename $imgfile)" >> ${manifest}
     fi
   done
   ((count++))
@@ -128,17 +123,17 @@ do
       shift
       ;;
 
-## --output <prefix>            Prefix output with string (default based in input filename)
-    '--output')
-      # check that $2 exists and is not another flag
-      if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
-        logerr "Option ${1} requires an argument"
-        usage
-        exit 1
-      fi
-      output_prefix=${2}
-      shift
-      ;;
+# ## --output <prefix>            Prefix output with string (default based in input filename)
+#    '--output')
+#      # check that $2 exists and is not another flag
+#      if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
+#        logerr "Option ${1} requires an argument"
+#        usage
+#        exit 1
+#      fi
+#      output_prefix=${2}
+#      shift
+#      ;;
 
 ## --tle <file>                 Path to tle file (default: satellites.tle)
     '--tle')
