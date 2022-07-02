@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ## Generates a "website" from decoded satellite data
 ## 
-## Usage: __PROG__ [options] file
+## Usage: __PROG__ [options]
 ##
 ## Run from the root of a directory tree containing manifest files.
 ## Each manifest file is used to generate a static web-page.
@@ -79,7 +79,8 @@ function generate_pages() {
 
 function generate_website() {
   local data_dir=${1}
-  generate_pages "${data_dir}" | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/index.html
+  local index=${2:-index.html}
+  generate_pages "${data_dir}" | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/${index}
 }
 
 # Reads a manifest file
