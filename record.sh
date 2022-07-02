@@ -17,10 +17,12 @@ gain_flag=''
 sample_rate=11025
 bandwidth=40000
 now=$(date +%s)
-outdir=.
-outfile=pass.wav
+output_file=./pass.wav
 # bandwidth = 2 * (17kHz deviation + 2.4kHz tone) * doppler shift (~1.2kHz)
 # wavfile is determined by options
+# DEPRECATED
+outdir=.
+outfile=pass.wav
 
 function process_args() {
 while (( "$#" ))
@@ -48,36 +50,25 @@ do
       shift
       ;;
 
-## --outfile <string>           sets the name of the output file, overrides any -noaa-** options
-    '--outfile')
-      wavfile=${2:-pass.wav}
-      log "will write to ${wavfile}"
+#  --output|-o <file>       name/path of the output file or directory
+    '--output' | '-o')
+      output_file=${2}
       shift
       ;;
 
-## --outdir <string>            sets the directory for output files
-    '--outdir')
-      outdir=${2}
-      log "output directory: %s" "${outdir}"
-      shift
-      ;;
-
-## --noaa-15                    alias --freq 137620000 --outfile noaa_15-${now}.wav
+## --noaa-15                    alias --freq 137620000
     '--noaa-15')
       freq=137620000
-      ${wavfile:="noaa_15-${now}.wav"}
       ;;
 
-## --noaa-18                    alias --freq 137912500 --outfile noaa_18-${now}.wav
+## --noaa-18                    alias --freq 137912500
     '--noaa-18')
       freq=137912500
-      ${wavfile:="noaa_18-${now}.wav"}
       ;;
 
-## --noaa-19                    alias --freq 137100000 --outfile noaa_19-${now}.wav
+## --noaa-19                    alias --freq 137100000
     '--noaa-19')
       freq=137100000
-      ${wavfile:="noaa_19-${now}.wav"}
       ;;
 
 # TODO: ## --bias-t, -T                 enable hardware Bias-T power
@@ -94,7 +85,7 @@ do
       ;;
 
     *)
-      err "Unknown argument %s" ${1}
+      logerr "Unknown argument %s" ${1}
       exit 1
       ;;
 
@@ -103,17 +94,13 @@ do
 done
 }
 
-function output_file_path() {
-  local dir=${1:-./} file=${2:-pass.wav}
-  echo "${1}/${2}"
-}
-
 function demodulate_pass() {
   timeout ${duration} rtl_fm -T -f ${freq} -M fm ${gain_flag} -s ${bandwidth} -r ${sample_rate} -E wav -E deemp -F 9 -A fast
 }
 
 function resample_pass() {
-  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - $(output_file_path "${outdir}" "${outfile}")
+  local $output
+  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - ${output_file:-'./wxrx.wav'}
 }
 
 function monitor_pass() {
@@ -134,11 +121,11 @@ log "Listening for signal on ${freq} for ${duration} seconds (gain: ${gain})"
 demodulate_pass | monitor_pass | resample_pass
 
 # Cleanup
-log "Finished writing to ${wavfile}"
+log "Finished writing to ${output_file}"
 
 # Verify that a wavfile was created
-if [ ! -f ${wavfile} ]; then
-  err "No output. Try the --debug flag"
+if [ ! -f ${output_file} ]; then
+  logerr "No output. Try the --debug flag"
   exit 1
 fi
 
