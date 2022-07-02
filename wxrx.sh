@@ -33,13 +33,13 @@ case "$command" in
 ##    record        Demodulate and record a signal
   'record')
     shift
-    HELP=$command_help ${rootdir}/receive_pass.sh $@
+    HELP=$command_help ${rootdir}/record.sh $@
     ;;
 
 ##    decode        Decode images from a recorded APT signal
   'decode')
     shift
-    HELP=$command_help ${rootdir}/build_images.sh $@
+    HELP=$command_help ${rootdir}/decode.sh $@
     ;;
 
 ##    web           Generate website files from decoded manifests
