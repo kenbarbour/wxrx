@@ -99,12 +99,15 @@ function demodulate_pass() {
 }
 
 function resample_pass() {
-  local $output
-  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - ${output_file:-'./wxrx.wav'}
+  sox -r ${sample_rate} -t raw -e s -b 16 -c 1 -V1 - ${1}
 }
 
 function monitor_pass() {
   ( [ -z $monitor ] && cat || tee >(play -r ${sample_rate} -t raw -es -b 16 -c 1 -V1 -) )
+}
+
+function device_is_connected() {
+  lsusb | grep RTL2838 > /dev/null
 }
 
 # If sourced, return now
@@ -115,17 +118,26 @@ fi
 # -- Do work below here --
 process_args $@
 
+if device_is_connected; then
+  log "Found device"
+else
+  logerr "No devices found"
+  exit 2
+fi
+
+output_file=${output_file:-'./wxrx.wav'}
+
 log "Current timestamp: %s" ${now}
 log "Listening for signal on ${freq} for ${duration} seconds (gain: ${gain})"
 
-demodulate_pass | monitor_pass | resample_pass
+demodulate_pass | monitor_pass | resample_pass ${output_file}
 
 # Cleanup
 log "Finished writing to ${output_file}"
 
 # Verify that a wavfile was created
 if [ ! -f ${output_file} ]; then
-  logerr "No output. Try the --debug flag"
+  logerr "No output file created."
   exit 1
 fi
 
