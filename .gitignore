@@ -1,4 +1,6 @@
 *.wav
 *.png
 *.tle
+*.swp
+*.swo
 web/public
