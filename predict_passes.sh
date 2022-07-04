@@ -16,6 +16,7 @@ tlefile=${tlefile:=satellites.tle}
 min_duration=${min_duration:=0}
 min_elevation=${min_elevation:=45}
 max_aos=$(expr 86400 + $(date +%s))
+date_format='+%F %T'
 
 ##  Options:
 while (( "$#" ));
@@ -42,6 +43,17 @@ do
     '--all' | '-a')
       min_duration=0
       min_elevation=0
+      ;;
+
+## --date-format <string>       Specify a date format string
+    '--date-format')
+      if [[ $# -lt 2 ]] || [[ $2 == -* ]] ; then
+        logerr "Option ${1} requires an argument"
+        usage
+        exit 1
+      fi
+      date_format=${2}
+      shift
       ;;
 
 ## --min-duration <seconds>     Minimum duration to include in report (default 0)
@@ -142,6 +154,7 @@ function prediction() {
 # @global min_duration
 # @global min_elevation
 # @global max_aos
+# @global date_format (default '+%F %T')
 # @output '<human-timestamp> <seconds duration> <sat_name>'
 function predict_all() {
   sat_name=${1:-'NOAA 15'}
@@ -151,7 +164,7 @@ function predict_all() {
     aos=$(printf "%s" "$pass" | cut -f 1)
     duration=$(printf "%s" "$pass" | cut -f 2)
     ele=$(printf "%s" "$pass" | cut -f 3)
-    starttime=$(date -d @${aos} '+%F %T')
+    starttime=$(date -d @${aos} "${date_format:-'+%F %T'}")
     last_aos=$(expr 90 + $(expr ${aos} + ${duration}))
 
     # if min_duration and min_elevation satisfied, print
