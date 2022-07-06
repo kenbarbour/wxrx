@@ -50,7 +50,8 @@ case "$command" in
 
 ##    pass          Capture and decode a pass occuring NOW
   'pass')
-    printf "TODO\n"
+    shift
+    HELP=$command_help ${rootdir}/run_station.sh $@
     ;;
 
 ##    update        Update satellite telemetry
@@ -61,7 +62,8 @@ case "$command" in
 
 ##    schedule      Schedule a future pass with `atd`
   'schedule')
-    printf "TODO\n"
+    shift
+    HELP=$command_help ${rootdir}/schedule.sh $@
     ;;
 
   '*')

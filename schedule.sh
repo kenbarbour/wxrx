@@ -64,7 +64,6 @@ function schedule_pass() {
 sleep $(echo ${time} | cut -d'.' -f2)
 wxrx run $(satellite_name_flag "${satellite}") --duration ${duration} >> ./wxrx-log
 EOF
-
 }
 
 # @param string mock for `atd`
@@ -72,7 +71,7 @@ function schedule_passes() {
   local at=${1:-'at'}
 
   while read -r line; do
-    schedule_pass 'mock_at' ${line}
+    schedule_pass "${at}" ${line}
   done
 
 }
@@ -83,7 +82,11 @@ function unschedule_passes() {
   #   atrm $line
   # done
   # >${jobfile}
-  atrm $(atq -q w | cut -f1)
+  local jobs=$(atq -q w | cut -f1)
+  if [ -n "${jobs}" ]; then
+    # log "Removing atd job: %s" "$(echo $jobs)"
+    atrm $(echo ${jobs})
+  fi
 }
 
 
