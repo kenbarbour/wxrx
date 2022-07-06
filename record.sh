@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Receives a pass of a NOAA Satellite
 ##
 ## usage: __PROG__ [options]

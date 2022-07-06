@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 ## Predict future passes
 ## 
 ## Usage: __PROG__ [options]

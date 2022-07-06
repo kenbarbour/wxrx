@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Install dependencies
 ##
 ## usage: __PROG__ [options]

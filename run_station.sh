@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Handles the reception, decoding, and website generation of a single pass
 ##
 ## usage: __PROG__ [options]

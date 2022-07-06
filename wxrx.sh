@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 ##
 ## __PROG__ <command> [-h|--help] ...
 prog="$0"

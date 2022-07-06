@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 ## Fetch satellite TLE data
 ## usage: __PROG__ [<outfile>=satellites.tle]
 
