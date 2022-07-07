@@ -17,7 +17,7 @@ outfile=${1:-'satellites.tle'}
 
 log "Updating satellite information"
 
-curl https://www.celestrak.com/NORAD/elements/weather.txt 2>/dev/null | \
+curl -L https://www.celestrak.com/NORAD/elements/weather.txt 2>/dev/null | \
   grep 'NOAA 15\|NOAA 18\|NOAA 19' --no-group-separator -A 2 > ${outfile}
 
 if [ $? ]; then
