@@ -9,9 +9,13 @@ WXRX_WEB_PUBDIR=${WXRX_WEB_PUBDIR:="${WXRX_WEB_DIR}/public"}
 # @output path to template
 # @return non-zero if path does not exist
 function template_path() {
-  file=${WXRX_WEB_TEMPLATES}/${1}.template
+  local file=${WXRX_WEB_TEMPLATES}/${1}.template
+  local fallback="${rootdir}/lib/web-templates/${1}.template"
   if [ -f "$file" ]; then
     echo $file
+    return
+  elif [ -f "$fallback" ]; then
+    echo $fallback
     return
   fi
   return 1
