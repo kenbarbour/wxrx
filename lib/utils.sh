@@ -2,7 +2,12 @@
 # Does nothing if not using stdout
 function usage() {
   if [ -t 1 ]; then
-    grep '^##' "$prog" | sed -e 's/^##\s\?//' -e "s/__PROG__/$me/" 1>&2
+    grep '^##' "$prog" | sed \
+      -e 's/^##\s\?//' \
+      -e "s/__PROG__/$me/" \
+      -e "s|__DEFAULT_WXRX_WEB_PUBDIR__|${WXRX_WEB_PUBDIR:-undefined}|" \
+      -e "s|__DEFAULT_WXRX_WEB_TEMPLATES__|${WXRX_WEB_TEMPLATES:-undefined}|" \
+    1>&2
   fi
 }
 
