@@ -106,6 +106,10 @@ function publish_manifest() {
   manifest=${1}
   relpath=${2:-}
   manifest_dir=$(dirname ${manifest})
+  validate_manifest "${manifest}" || {
+    logwarn "Invalid manifest: %s" "${manifest}"
+    return
+  }
   for file in $(cat $manifest)
   do
     publish_file "${manifest_dir}/$file" "$relpath"
@@ -216,6 +220,21 @@ function render_pass_image() {
     template_subst SRC "${path}" |
     template_subst ALT "Decoded satellite image" |
     template_subst CAPTION "${caption}"
+}
+
+function validate_manifest() {
+  local dir=$(dirname "${1}")
+  for file in `cat ${1}`
+  do
+    if [ ! -f ${dir}/${file} ]; then
+      logwarn "Missing file %s" "${dir}/${file}"
+      return 1
+    elif [ "$(wc -c <${dir}/${file})" -lt 5000 ]; then
+      logwarn "File too small %s" "${dir}/${file}"
+      return 2
+    fi
+  done
+  return 0
 }
 
 function timestamp_from_file() {

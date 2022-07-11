@@ -150,6 +150,7 @@ test_render_page() {
   assertTrue "expected 0 return status" ${rtrn}
   assertNotNull "expected output to stdout" "`cat ${stdoutF}`"
   assertNull 'unexpected message to stderr' "`cat ${stderrF}`"
+  cat $stderrF
 
   assertNotNull 'expected wavfile in markup' "`grep 'noaa_15-1643805264.wav' ${stdoutF}`"
   assertNotNull 'expected thermal image' "`grep 'noaa_15-1643805264-therm.png' ${stdoutF}`"
