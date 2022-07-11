@@ -43,6 +43,17 @@ function find_manifest_files() {
   sort
 }
 
+function find_valid_manifest_files() {
+  for manifest in $(find_manifest_files ${1:-.})
+  do
+    validate_manifest "${manifest}" || {
+      logwarn "Skipping invalid manifest %s" "${manifest}"
+      continue
+    }
+    echo "${manifest}"
+  done
+}
+
 # @param manifest file
 # @output path to image file
 function generate_manifest_thumbnail() {
@@ -59,7 +70,7 @@ function generate_manifest_thumbnail() {
 # TODO: avoid regenerating pages
 function generate_pages() {
   local data_dir=${1:-.}
-  for manifest in $(find_manifest_files "${data_dir}")
+  for manifest in $(find_valid_manifest_files "${data_dir}")
   do
     # each manifest file should turn into an html file, within
     # WXRX_WEB_PUBDIR, mirroring the manifest path
@@ -68,6 +79,10 @@ function generate_pages() {
     html_src="${relpath}/$(basename ${manifest} -manifest.txt).html"
     html_src=$(echo "${html_src}" | sed 's/^\.\///')
     html_path="${WXRX_WEB_PUBDIR}/${html_src}"
+    if ! file_is_newer "$manifest" "${html_path}"; then
+      logdebug "Already built %s" "${html_path}"
+      continue
+    fi
     files=$(publish_manifest "${manifest}" "${relpath}")
     thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
     thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
@@ -83,6 +98,17 @@ function generate_website() {
   generate_pages "${data_dir}" | sort -r | head -n10 | render_index > ${WXRX_WEB_PUBDIR}/${index}
 }
 
+function file_is_newer() {
+  local a=${1}
+  local b=${2}
+  if [ ! -f ${b} ]; then
+    return 0; # yes, b file DNE
+  elif [ ${a} -nt ${b} ]; then
+    return 0; # yes, a is newer
+  fi
+  return 1; # no, not newer
+}
+
 # Reads a manifest file
 # @param manifest file
 # @param path relative to WXRX_WEB_PUBDIR
@@ -93,6 +119,10 @@ function publish_file() {
   src=${1}
   dest_path=${2}
   dest=${WXRX_WEB_PUBDIR}/${dest_path}/$(basename ${src})
+  file_is_newer "${src}" "${dest}" || {
+    logdebug "Not modifying file %s, src is not newer" "${dest}"
+    return 0
+  }
   mkdir -p $(dirname ${dest})
   cp ${src} ${dest}
   echo $(basename "${dest}")
@@ -106,10 +136,6 @@ function publish_manifest() {
   manifest=${1}
   relpath=${2:-}
   manifest_dir=$(dirname ${manifest})
-  validate_manifest "${manifest}" || {
-    logwarn "Invalid manifest: %s" "${manifest}"
-    return
-  }
   for file in $(cat $manifest)
   do
     publish_file "${manifest_dir}/$file" "$relpath"
@@ -227,10 +253,10 @@ function validate_manifest() {
   for file in `cat ${1}`
   do
     if [ ! -f ${dir}/${file} ]; then
-      logwarn "Missing file %s" "${dir}/${file}"
+      logdebug "Missing file %s" "${dir}/${file}"
       return 1
     elif [ "$(wc -c <${dir}/${file})" -lt 5000 ]; then
-      logwarn "File too small %s" "${dir}/${file}"
+      logdebug "File too small %s" "${dir}/${file}"
       return 2
     fi
   done
