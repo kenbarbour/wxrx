@@ -79,15 +79,15 @@ function generate_pages() {
     html_src="${relpath}/$(basename ${manifest} -manifest.txt).html"
     html_src=$(echo "${html_src}" | sed 's/^\.\///')
     html_path="${WXRX_WEB_PUBDIR}/${html_src}"
-    if ! file_is_newer "$manifest" "${html_path}"; then
-      logdebug "Already built %s" "${html_path}"
-      continue
-    fi
     files=$(publish_manifest "${manifest}" "${relpath}")
     thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
     thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
-    mkdir -p "$(dirname ${html_path})"
-    render_page ${files} >"${html_path}"
+    if file_is_newer "${manifest}" "${html_path}"; then
+      mkdir -p "$(dirname ${html_path})"
+      render_page ${files} >"${html_path}"
+    else
+      logdebug "Already built %s" "${html_path}"
+    fi
     printf "%s\t%s\t%s\n" "${timestamp}" "${html_src}" "${thumbnail_src}"
   done
 }
