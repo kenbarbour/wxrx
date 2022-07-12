@@ -119,12 +119,19 @@ function publish_file() {
   src=${1}
   dest_path=${2}
   dest=${WXRX_WEB_PUBDIR}/${dest_path}/$(basename ${src})
-  file_is_newer "${src}" "${dest}" || {
+  if file_is_newer "${src}" "${dest}"; then
+    mkdir -p $(dirname ${dest})
+    case "${dest##*.}" in
+      'png')
+        logdebug "Processing PNG with imagemagick %s" "${dest}"
+        convert "${src}" -colors 255 "${dest}"
+        ;;
+      *)
+        cp ${src} ${dest}
+    esac
+  else
     logdebug "Not modifying file %s, src is not newer" "${dest}"
-    return 0
-  }
-  mkdir -p $(dirname ${dest})
-  cp ${src} ${dest}
+  fi
   echo $(basename "${dest}")
 }
 
