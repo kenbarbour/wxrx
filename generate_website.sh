@@ -55,11 +55,30 @@ function find_valid_manifest_files() {
 }
 
 # @param manifest file
-# @output path to image file
+# @param path (in WXRX_WEB_PUBDIR) to publish files to
+# @output relative path to image file from WXRX_WEB_PUBDIR
+# @side-effect generates an image file in WXRX_WEB_PUBDIR/{path}
 function generate_manifest_thumbnail() {
-  #TODO: generate an actual thumbnail and move it to the web dir
-  # skip if file exists, unless forced
-  cat $1 | grep -m1 '\.png'
+  local manifest=${1}
+  local manifestdir=$(dirname ${manifest})
+  local relpath=${2}
+  local basename=$(basename "${manifest}" "manifest.txt")
+  local dest=${relpath}/${basename}thumbnail.png
+  if [ -f "${WXRX_WEB_PUBDIR}/${dest}" ]; then
+    logdebug "thumbnail already exists: %s" "${WXRX_WEB_PUBDIR}/${dest}"
+    echo $dest
+    return 0
+  fi
+  local file=$(grep 'MCIR' ${manifest} | head -n 1)
+  if [ -z "${file}" ]; then
+    local file=$(grep 'therm' ${manifest} | head -n 2)
+  fi
+  if [ -z "${file}" ]; then
+    local file=$(grep 'png' ${manifest} | head -n 2)
+  fi
+
+  convert ${manifestdir}/${file} -colors 256 -thumbnail 500x500^ -gravity center -extent 500x500 ${WXRX_WEB_PUBDIR}/${dest}
+  echo $dest
 }
 
 # Generates a website by inspecting the directory tree at '.'
@@ -67,7 +86,6 @@ function generate_manifest_thumbnail() {
 # @param path to data (manifests will be searched from this tree)
 # @side-effect generates files in WXRX_WEB_PUBDIR
 # @output tab delimited: timestamp, html, thumbnail
-# TODO: avoid regenerating pages
 function generate_pages() {
   local data_dir=${1:-.}
   for manifest in $(find_valid_manifest_files "${data_dir}")
@@ -80,8 +98,11 @@ function generate_pages() {
     html_src=$(echo "${html_src}" | sed 's/^\.\///')
     html_path="${WXRX_WEB_PUBDIR}/${html_src}"
     files=$(publish_manifest "${manifest}" "${relpath}")
-    thumbnail_src="${relpath}/$(echo "$files" | head -n2 | tail -n1)"
-    thumbnail_src=$(echo "${thumbnail_src}" | sed 's/^\.\///')
+    thumbnail_src=$(generate_manifest_thumbnail ${manifest} "${relpath}")
+    if [ -z "${thumbnail_src}" ]; then
+      logerr "Error generating thumbnail for %s" "${manifest}"
+      continue
+    fi
     if file_is_newer "${manifest}" "${html_path}"; then
       mkdir -p "$(dirname ${html_path})"
       render_page ${files} >"${html_path}"
