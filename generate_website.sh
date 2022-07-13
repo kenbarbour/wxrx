@@ -262,7 +262,7 @@ function validate_manifest() {
     if [ ! -f ${dir}/${file} ]; then
       logdebug "Missing file %s" "${dir}/${file}"
       return 1
-    elif [ "$(wc -c <${dir}/${file})" -lt 5000 ]; then
+    elif [ "$(wc -c <${dir}/${file})" -lt 50000 ]; then
       logdebug "File too small %s" "${dir}/${file}"
       return 2
     fi
