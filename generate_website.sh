@@ -124,7 +124,12 @@ function publish_file() {
     case "${dest##*.}" in
       'png')
         logdebug "Processing PNG with imagemagick %s" "${dest}"
-        convert "${src}" -colors 255 "${dest}"
+        convert "${src}" \
+          -colors 255 \
+          -define png:compression-filter=0 \
+          -define png:compression-level=9 \
+          -define png:compression-strategy=0 \
+          "${dest}"
         ;;
       *)
         cp ${src} ${dest}
