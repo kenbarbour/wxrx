@@ -143,11 +143,6 @@ do
         usage
         exit 1
       fi
-      if ! [[ "$2" =~ ^[0-9]+$ ]]; then
-        logerr "Option ${1} must have an integer argument"
-        usage
-        exit 1
-      fi
       tle_file=${2}
       if [ ! -f ${tle_file} ]; then
         logerr "Unable to locate tle file: ${tle_file}"
