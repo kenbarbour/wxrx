@@ -144,18 +144,19 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   return
 fi
 
+# -- Do work below here --
+process_args $@
+
 # -- Default Values --
 output_path=${output_path:=$(get_default_dir ${now})}
 satellite=${satellite:='noaa-15'}
 file_basename=${file_basename:=$(get_default_basename "${satellite}" "${now}")}
-
-# -- Do work below here --
-process_args $@
+audio_file=${output_path}/${file_basename}.wav
 
 mkdir -p ${output_path}
 
 # Receive the pass (receive_pass.sh)
-audio_file=${output_path}/${file_basename}.wav
+printf "audio file: %s\n" "${audio_file}"
 wxrx record $(receive_pass_flags "$duration" "${satellite}" "${audio_file}")
 if [[ $? != 0 ]]; then
   logerr "Errors occurred receiving signal"
