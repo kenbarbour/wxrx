@@ -126,7 +126,7 @@ function generate_website_flags() {
 # @output string
 function get_default_dir() {
   local ts=${1:-$(date +%s)}
-  echo "./$(date -d @${ts} +%Y\/%m)"
+  echo "./$(date -d @${ts} +%Y\/%m\/%d)"
 }
 
 # Determine a resonable default basename for files generated
