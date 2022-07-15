@@ -77,7 +77,7 @@ function generate_manifest_thumbnail() {
     local file=$(grep 'png' ${manifest} | head -n 2)
   fi
 
-  convert ${manifestdir}/${file} -colors 256 -thumbnail 500x500^ -gravity center -extent 500x500 ${WXRX_WEB_PUBDIR}/${dest}
+  convert ${manifestdir}/${file} -colors 256 -thumbnail 512x512^ -gravity center -extent 500x500 ${WXRX_WEB_PUBDIR}/${dest}
   echo $dest
 }
 
