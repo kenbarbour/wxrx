@@ -20,7 +20,13 @@ now=$(date +%s)
 function process_args() {
 while (( "$#" ))
 do
-  case $1 in
+  case "$1" in
+
+## --after <command>            Run a command after a successful pass (default: none)
+    '--after')
+      after="${2}"
+      shift
+      ;;
 
 ## --freq <frequency>           (default: 137M)
     '--freq')
@@ -64,7 +70,7 @@ do
       satellite='noaa-19'
       ;;
 
-## --dir <path>                 Directory to place data (default: ./<month>/<day>)
+## --dir <path>                 Directory to place data (default: ./<year>/<month>/<day>)
     '--dir')
       output_path=${2}
       shift
@@ -145,7 +151,7 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
 fi
 
 # -- Do work below here --
-process_args $@
+process_args "${@}"
 
 # -- Default Values --
 output_path=${output_path:=$(get_default_dir ${now})}
@@ -179,3 +185,15 @@ fi
 
 # Generate website
 wxrx web $(generate_website_flags)
+if [[ $? != 0 ]]; then
+  logerr "Errors occurred generating website"
+  exit 30
+fi
+
+if [ -nz "${after}" ]; then
+  log "Running --after command: %s" "${after}"
+  ${after} || {
+    logerr "Failed to run command after a successful pass: %s" "${after}"
+    exit 41
+  }
+fi
