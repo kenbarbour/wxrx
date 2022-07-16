@@ -13,7 +13,13 @@ source "${rootdir}/lib/utils.sh"
 function process_args() {
 while (( "$#" ))
 do
-  case $1 in
+  case "$1" in
+
+## --after <command>            Run a command after a successful pass
+    '--after')
+      after="${2}"
+      shift
+      ;;
 
 ## --hours <integer>
     '--hours')
@@ -54,15 +60,23 @@ function satellite_name_flag() {
   sed -e 's/^/--/'
 }
 
+# Schedules a single pass with atd
+# @global after - if set, will run this command after a successful pass
+# @param string command to run for 'at' (allows test mocking)
+# @param string time
+# @param integer duration in seconds of the pass
+# @param string satellite name (concatenates remaining args to handle spaces)
+# @side-effect creates a job in atd
+# @return result of 'at' invocation
 function schedule_pass() {
   local time=${2}
   local duration=${3}
-  local satellite=${*:4}
+  local satellite=${*:5}
   local at=${1}
 
   ${at:-'at'} -q w -t "$(echo $time | cut -d'.' -f1)" <<EOF 2>&1 2>&1 | grep -oP '(?<=job\s)[0-9]+' >> wxrx-jobs
 sleep $(echo ${time} | cut -d'.' -f2)
-wxrx pass $(satellite_name_flag "${satellite}") --duration ${duration} >> ./wxrx-log
+wxrx pass $(satellite_name_flag "${satellite}") --duration ${duration} $([ ! -z "${after}" ] && echo "&& ${after}") >> ./wxrx/log
 EOF
 }
 

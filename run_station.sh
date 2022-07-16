@@ -22,12 +22,6 @@ while (( "$#" ))
 do
   case "$1" in
 
-## --after <command>            Run a command after a successful pass (default: none)
-    '--after')
-      after="${2}"
-      shift
-      ;;
-
 ## --freq <frequency>           (default: 137M)
     '--freq')
       freq=${2}
@@ -190,10 +184,3 @@ if [[ $? != 0 ]]; then
   exit 30
 fi
 
-if [ -nz "${after}" ]; then
-  log "Running --after command: %s" "${after}"
-  ${after} || {
-    logerr "Failed to run command after a successful pass: %s" "${after}"
-    exit 41
-  }
-fi
