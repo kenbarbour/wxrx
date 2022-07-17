@@ -64,15 +64,21 @@ function generate_manifest_thumbnail() {
   local relpath=${2}
   local basename=$(basename "${manifest}" "manifest.txt")
   local dest=${relpath}/${basename}thumbnail.png
-  if [ -f "${WXRX_WEB_PUBDIR}/${dest}" ]; then
+  local hour_of_day=$(date -d @$(timestamp_from_filename "${manifest}") "+%d")
+    if [ -f "${WXRX_WEB_PUBDIR}/${dest}" ]; then
     logdebug "thumbnail already exists: %s" "${WXRX_WEB_PUBDIR}/${dest}"
     echo $dest
     return 0
   fi
-  local file=$(grep 'MCIR' ${manifest} | head -n 1)
-  if [ -z "${file}" ]; then
-    local file=$(grep 'therm' ${manifest} | head -n 2)
+
+  # Prefer thermal images for night
+  if [ "${hour_of_day}" -lt 6 ] || [ "${hour_of_day}" -gt 18 ]; then
+    local file=$(grep 'therm' ${manifest} | head -n 1)
+  else
+    local file=$(grep 'MCIR' ${manifest} | head -n 1)
   fi
+
+  # if file is empty, fallback to ANY png
   if [ -z "${file}" ]; then
     local file=$(grep 'png' ${manifest} | head -n 2)
   fi
