@@ -71,7 +71,7 @@ function satellite_name_flag() {
 function schedule_pass() {
   local time=${2}
   local duration=${3}
-  local satellite=${*:5}
+  local satellite=${*:4}
   local at=${1}
 
   ${at:-'at'} -q w -t "$(echo $time | cut -d'.' -f1)" <<EOF 2>&1 2>&1 | grep -oP '(?<=job\s)[0-9]+' >> wxrx-jobs
