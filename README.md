@@ -6,7 +6,7 @@ static web pages with the decoded image using any of the popular RTL2832U-based 
 *Warning*: These scripts are still very much a work in progress and, in my opinion, are not ready for
 a major version number.
 
-[See it in action](https://static.kenbarbour.com/wxrx/index.html)
+[See it in action](https://wxrx.kenbarbour.com/)
 
 ## Dependencies
 * BASH
