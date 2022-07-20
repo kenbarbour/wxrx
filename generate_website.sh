@@ -64,7 +64,7 @@ function generate_manifest_thumbnail() {
   local relpath=${2}
   local basename=$(basename "${manifest}" "manifest.txt")
   local dest=${relpath}/${basename}thumbnail.png
-  local hour_of_day=$(date -d @$(timestamp_from_filename "${manifest}") "+%d")
+  local hour_of_day=$(date -d @$(timestamp_from_filename "${manifest}") "+%k")
     if [ -f "${WXRX_WEB_PUBDIR}/${dest}" ]; then
     logdebug "thumbnail already exists: %s" "${WXRX_WEB_PUBDIR}/${dest}"
     echo $dest
