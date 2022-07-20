@@ -76,7 +76,7 @@ function schedule_pass() {
 
   ${at:-'at'} -q w -t "$(echo $time | cut -d'.' -f1)" <<EOF 2>&1 2>&1 | grep -oP '(?<=job\s)[0-9]+' >> wxrx-jobs
 sleep $(echo ${time} | cut -d'.' -f2)
-wxrx pass $(satellite_name_flag "${satellite}") --duration ${duration} $([ ! -z "${after}" ] && echo "&& ${after}") >> ./wxrx/log
+wxrx pass $(satellite_name_flag "${satellite}") --duration ${duration} $([ ! -z "${after}" ] && echo "&& ${after}") >> wxrx-log
 EOF
 }
 
