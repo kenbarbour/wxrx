@@ -10,7 +10,7 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 count=0
-enhancements="MSA MSA-PRECIP ZA NO MCIR therm"
+enhancements="MSA MSA-PRECIP ZA NO MCIR therm pristine"
 tle_file="satellites.tle"
 
 # Guesses the timestamp of a file based on the duration and mtime
@@ -22,6 +22,24 @@ function guess_timestamp() {
   duration=$(printf "%.0f\n" $(soxi -D ${1}))
   mtime=$(stat -c %Y ${1})
   expr ${mtime} - ${duration} + 2
+}
+
+#
+# @param string satellite name
+# @param path to tle file
+# @param integer timestamp
+# @param path to output map file
+# @side-effect creates PNG map file
+function make_mapfile() {
+  local satellite=${1}
+  local tle=${2}
+  local timestamp=${3}
+  local mapfile=${4}
+
+  wxmap -T "${satellite}" -G . -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile} ||
+  wxmap -T "${satellite}" -G . -H "${tle_file}" -p 0 -l 0 -o $(expr ${ts} + 4) ${mapfile} ||
+  wxmap -T "${satellite}" -G . -H "${tle_file}" -p 0 -l 0 -o $(expr ${ts} + 8) ${mapfile}
+  
 }
 
 function make_images() {
@@ -45,14 +63,7 @@ function make_images() {
   # if sat and timestamp supplied, generate a map
   mapfile="${prefix}-map.png"
   if [ ! -z "${satellite}" ]; then
-    wxmap -T "${satellite}" -G . -H "${tle_file}" -p 0 -l 0 -o ${ts} ${mapfile}
-    if [ $? -gt 0 ]; then
-      logerr "Error generating map"
-    else
-      log "Generated map ${mapfile}"
-      # Dont include map; it is only used to generate images
-      # echo "$(basename $mapfile)" > ${manifest}
-    fi
+    make_mapfile "${satellite}" "${tle_file}" "${ts}" "${mapfile}" || logerr "Error generating map"
   fi
   if [ -f $mapfile ]; then
       log "Using map file ${mapfile}"
