@@ -24,6 +24,12 @@ function guess_timestamp() {
   expr ${mtime} - ${duration} + 2
 }
 
+# @param infile
+# @param outfile
+function make_spectrogram() {
+  sox ${1} -n spectrogram -o ${2}
+}
+
 function make_images() {
   local wavfile=${1}
   local prefix="$(dirname ${wavfile})/$(basename ${wavfile} .wav)"
@@ -73,6 +79,11 @@ function make_images() {
       echo "$(basename $imgfile)" >> ${manifest}
     fi
   done
+
+  # create a spectrogram
+  local spectrogram=${prefix}-spectrogram.png
+  make_spectrogram ${wavfile} ${spectrogram} && echo "$(basename ${spectrogram})" >> ${manifest} && \
+    log "Adding spectrogram" || logerr "Unable to generate a spectrogram"
   ((count++))
 }
 
