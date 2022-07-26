@@ -10,7 +10,7 @@ me=${HELP:-`basename "$prog"`}
 rootdir=$(dirname $(realpath $0))
 source ${rootdir}/lib/utils.sh
 count=0
-enhancements="MSA MSA-PRECIP ZA NO MCIR therm pristine"
+enhancements="MSA MSA-PRECIP MCIR MCIR-PRECIP therm ZA NO pristine"
 tle_file="satellites.tle"
 
 # Guesses the timestamp of a file based on the duration and mtime
