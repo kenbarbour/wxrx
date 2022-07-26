@@ -16,6 +16,7 @@ a major version number.
 * [shunit2](https://github.com/kward/shunit2) (for development and testing)
 * rtl_fm
 * atd
+* sox
 
 ## Usage
 Use `wxrx help` or `wxrx <command> help` for helptext for any of the scripts.
@@ -30,7 +31,7 @@ Use `wxrx help` or `wxrx <command> help` for helptext for any of the scripts.
 
 ### Example usage
 * Set `wxrx/web/public` as a web server document root
-* Add `wxrx update && wxrx schedule` as a daily cronjoba
+* Add `PWD=/srv/wxrx wxrx update && wxrx schedule` as a daily cronjobs.  Set PWD to a path to store data.
 
 ## Further reading
 [github.com/nootropicdesign/wx-ground-station](https://github.com/nootropicdesign/wx-ground-station)

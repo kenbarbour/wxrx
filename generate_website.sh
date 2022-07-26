@@ -214,7 +214,7 @@ function render_index() {
   
 }
 
-# Renders the markup for an item to include in the site inded
+# Renders the markup for an item to include in the site index
 # @param url path to item (usually html page)
 # @param string Title
 # @param string thumbnail image
@@ -223,7 +223,7 @@ function render_index_item() {
   url=${1}
   title=${2}
   thumbnail=${3}
-  cat ${WXRX_WEB_TEMPLATES}/item.template |
+  cat $( template_path "item") |
     template_subst URL "${url}" |
     template_subst HEADING "${title}" |
     template_subst THUMBNAIL "${thumbnail}"
