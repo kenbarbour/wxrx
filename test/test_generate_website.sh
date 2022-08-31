@@ -170,6 +170,51 @@ test_render_pass_audio() {
 EOF
 }
 
+test_render_schedule() {
+  stdinF=${SHUNIT_TMPDIR}/stdin
+  stdoutF=${SHUNIT_TMPDIR}/stdout
+  stderrF=${SHUNIT_TMPDIR}/stderr
+  WXRX_WEB_DIR=${SHUNIT_TMPDIR}
+  mkdir -p ${WXRX_WEB_DIR}/templates
+  mkdir -p ${WXRX_WEB_DIR}/public
+  source "${unit}"
+
+  cat << EOF > ${WXRX_WEB_DIR}/templates/schedule-item.template
+<tr>
+  <td>{{SATELLITE}}</td>
+  <td>{{DURATION}}</td>
+  <td>{{DATE}}</td>
+</tr>
+EOF
+
+  cat << EOF > "$stdinF"
+2022-08-27 20:45:41	940	NOAA 19
+2022-08-28 09:10:24	944	NOAA 19
+2022-08-28 12:20:16	904	NOAA 18
+EOF
+
+  cat "${stdinF}" | render_schedule > "${stdoutF}" 2> "${stderrF}"
+  rtrn=$?
+
+  assertTrue $rtrn
+  assertNull "unexpected error output" "$(cat $stderrF)"
+  assertEquals "<tr>
+  <td>NOAA 19</td>
+  <td>940</td>
+  <td>2022-08-27 20:45:41</td>
+</tr>
+<tr>
+  <td>NOAA 19</td>
+  <td>944</td>
+  <td>2022-08-28 09:10:24</td>
+</tr>
+<tr>
+  <td>NOAA 18</td>
+  <td>904</td>
+  <td>2022-08-28 12:20:16</td>
+</tr>" "$(cat $stdoutF)"
+}
+
 test_timestamp_from_filename() {
   source $unit
   assertEquals "1644452667" "$(timestamp_from_filename foo-1644452667-bar.baz)"

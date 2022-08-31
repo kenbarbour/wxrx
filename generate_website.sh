@@ -207,11 +207,27 @@ function render_index() {
   document_body=$(cat $(template_path "index") |
     template_subst CONTENT "${content}")
 
+  local schedule=$(wxrx predict --look-ahead 48 | render_schedule)
+
   cat $(template_path "document") |
     template_subst CONTENT "${document_body}" |
     template_subst TITLE "${title}" |
+    template_subst SCHEDULE "${schedule}" |
     template_subst GENERATED_AT "${generated_at}"
   
+}
+
+# Render a schedule up the upcoming passes
+# @input output of `wxrx predict`
+# @output rendered markup to stdout
+function render_schedule() {
+  while IFS=$'\t' read -r datetime duration satellite
+  do
+    cat $(template_path "schedule-item") |
+      template_subst DATE "${datetime}" |
+      template_subst DURATION "${duration}" |
+      template_subst SATELLITE "${satellite}"
+  done
 }
 
 # Renders the markup for an item to include in the site index

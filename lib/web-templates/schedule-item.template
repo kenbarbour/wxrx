@@ -1,0 +1,5 @@
+<tr>
+  <td>{{SATELLITE}}</td>
+  <td>{{DATE}}</td>
+  <td>{{DURATION}}</td>
+</tr>
